@@ -128,7 +128,6 @@
             <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 0.95rem;">Enter your credentials to access the system.</p>
             
             <form id="form-login" style="display: flex; flex-direction: column; gap: 16px;">
-                <!-- Notice the input handles both uppercase and lowercase seamlessly now -->
                 <input type="text" id="login-user" placeholder="Username" required>
                 <input type="password" id="login-pass" placeholder="Password" required>
                 <button type="submit" class="btn btn-primary" style="padding: 14px;">Secure Login</button>
@@ -272,7 +271,6 @@
          * 1. SECURITY & UTILS
          */
         const Utils = {
-            // Web Crypto API SHA-256 Hashing
             async hashPassword(password) {
                 const msgBuffer = new TextEncoder().encode(password);
                 const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -282,42 +280,23 @@
             generateId: (prefix) => `${prefix}_${Date.now().toString(36)}`
         };
 
-        // Authorized User Hashes (Strictly lowercase keys now)
-        // gopal verma (123456), parth deshpande (234567)
-        const VALID_USERS = {
-            "gopal verma": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
-            "parth deshpande": "102b51b9765a56a3e899f7cf0ce38e5cb8deac8a9cf29f55e8c1482a17684126"
-        };
-
         /**
          * 2. STATE MANAGEMENT (Syncs with Manager via LocalStorage)
          */
         const State = {
             data: {},
-            currentUser: null,
+            currentUser: null, // Stores the user's login username
             
             refresh() {
                 const stored = localStorage.getItem('MgmtSysData');
                 if (stored) {
                     this.data = JSON.parse(stored);
                 } else {
-                    // Fallback empty state if manager hasn't initialized
                     this.data = { system: { orderCount: 0, dailyReviews: 0, guidelines: "1. Push Chef's Specials\n2. Maintain cleanliness." }, tables: [], menu: [], employees: [], complaints: [] };
                 }
             },
             save() {
                 localStorage.setItem('MgmtSysData', JSON.stringify(this.data));
-            },
-            
-            ensureEmployeesExist() {
-                if(!this.data.employees) this.data.employees = [];
-                Object.keys(VALID_USERS).forEach(name => {
-                    // Check if the employee exists (case-insensitive check)
-                    if(!this.data.employees.find(e => e.name.toLowerCase() === name)) {
-                        this.data.employees.push({ id: Utils.generateId('emp'), name: name, role: 'Staff', phone: '', isWorking: false });
-                    }
-                });
-                this.save();
             }
         };
 
@@ -327,22 +306,25 @@
         const Auth = {
             async login(e) {
                 e.preventDefault();
-                // Force the input to lowercase instantly for case-insensitive matching
                 const user = document.getElementById('login-user').value.trim().toLowerCase();
                 const pass = document.getElementById('login-pass').value;
                 const errorEl = document.getElementById('auth-error');
                 
                 State.refresh();
-                State.ensureEmployeesExist();
 
-                if (VALID_USERS[user]) {
-                    const hashed = await Utils.hashPassword(pass);
-                    if (hashed === VALID_USERS[user]) {
-                        sessionStorage.setItem('EmpSession', user);
-                        State.currentUser = user; // Stored securely in lowercase
-                        errorEl.style.display = 'none';
-                        this.checkAccess();
-                        return;
+                // Dynamic Check: Search the employee database created by the manager
+                if(State.data.employees && State.data.employees.length > 0) {
+                    const employee = State.data.employees.find(emp => emp.username === user);
+                    
+                    if (employee) {
+                        const hashed = await Utils.hashPassword(pass);
+                        if (hashed === employee.hash) {
+                            sessionStorage.setItem('EmpSession', employee.username);
+                            State.currentUser = employee.username; 
+                            errorEl.style.display = 'none';
+                            this.checkAccess();
+                            return;
+                        }
                     }
                 }
                 
@@ -361,20 +343,17 @@
             },
 
             checkAccess() {
-                State.refresh(); // Get latest manager assignments
-                // Find employee ignoring case, in case manager added them manually with capital letters
-                const userRecord = State.data.employees.find(e => e.name.toLowerCase() === State.currentUser);
+                State.refresh(); 
+                const userRecord = State.data.employees.find(e => e.username === State.currentUser);
                 
                 document.getElementById('view-login').style.display = 'none';
 
                 if (userRecord && userRecord.isWorking) {
-                    // Access Granted
                     document.getElementById('view-denied').style.display = 'none';
                     document.getElementById('view-app').style.opacity = '1';
                     document.getElementById('view-app').style.pointerEvents = 'all';
                     UI.init();
                 } else {
-                    // Access Denied
                     document.getElementById('view-app').style.opacity = '0';
                     document.getElementById('view-app').style.pointerEvents = 'none';
                     const denied = document.getElementById('view-denied');
@@ -392,9 +371,10 @@
             splitCount: 1,
 
             init() {
-                document.getElementById('ui-emp-name').innerText = State.currentUser;
+                // Get the display name from the database to show in the header
+                const emp = State.data.employees.find(e => e.username === State.currentUser);
+                document.getElementById('ui-emp-name').innerText = emp ? emp.name : 'Staff';
                 
-                // Routing
                 document.querySelectorAll('.nav-item').forEach(el => {
                     if (el.hasAttribute('data-target')) {
                         el.addEventListener('click', (e) => this.Router.navigate(e.currentTarget));
@@ -429,13 +409,13 @@
 
             Dashboard: {
                 render() {
-                    // Guidelines
                     const gText = State.data.system.guidelines || "No specific guidelines for today.";
                     document.getElementById('dash-guidelines').innerHTML = gText.split('\n').map(g => `<li>${g}</li>`).join('');
 
-                    // Recent Orders by this employee (case insensitive check)
+                    // Find orders created by this specific user
                     const allOrders = State.data.tables.flatMap(t => t.orders || []);
-                    const myOrders = allOrders.filter(o => o.createdBy && o.createdBy.toLowerCase() === State.currentUser).reverse();
+                    const empName = State.data.employees.find(e => e.username === State.currentUser)?.name;
+                    const myOrders = allOrders.filter(o => o.createdBy === empName).reverse();
                     
                     document.getElementById('dash-order-count').innerText = myOrders.length;
 
@@ -577,7 +557,6 @@
                     btn.disabled = true;
                     btn.innerText = "Processing...";
 
-                    // Sync state immediately to prevent race conditions on order numbering
                     State.refresh();
                     
                     if(!State.data.system.orderCount) State.data.system.orderCount = 0;
@@ -586,7 +565,6 @@
 
                     const targetTable = State.data.tables.find(t => t.id === tableId);
                     
-                    // Process Splits
                     const bills = [];
                     let sumCheck = 0;
                     for(let i=1; i<=UI.splitCount; i++) {
@@ -596,7 +574,7 @@
                             id: Utils.generateId('bil'),
                             amount: amt,
                             paymentMethod: document.getElementById(`split-pay-${i}`).value,
-                            status: 'Paid' // Marking paid on creation for employee flow
+                            status: 'Paid'
                         });
                     }
 
@@ -607,6 +585,9 @@
                         return;
                     }
 
+                    // Store the employee's display name inside the order record
+                    const empName = State.data.employees.find(e => e.username === State.currentUser)?.name || 'Unknown Staff';
+
                     const newOrder = {
                         id: Utils.generateId('ord'),
                         orderNo: orderNo,
@@ -615,7 +596,7 @@
                         customer: document.getElementById('ord-customer').value || 'Walk-in',
                         guests: guests,
                         time: new Date().toLocaleTimeString(),
-                        createdBy: State.currentUser,
+                        createdBy: empName,
                         items: [...UI.cart],
                         total: total,
                         bills: bills,
@@ -626,7 +607,6 @@
                     targetTable.status = 'Occupied';
                     State.save();
 
-                    // Reset Form
                     UI.cart = [];
                     UI.splitCount = 1;
                     document.getElementById('ord-customer').value = '';
@@ -675,7 +655,7 @@
         window.addEventListener('storage', (e) => {
             if (e.key === 'MgmtSysData') {
                 if (State.currentUser) {
-                    Auth.checkAccess(); // Kick out if manager marked off-duty
+                    Auth.checkAccess(); 
                     if(document.getElementById('view-app').style.opacity === '1') {
                         UI.updateAll();
                     }
@@ -683,7 +663,6 @@
             }
         });
 
-        // Initialize Form Events & Start System
         document.getElementById('form-login').addEventListener('submit', (e) => Auth.login(e));
         
         document.addEventListener('DOMContentLoaded', () => {
