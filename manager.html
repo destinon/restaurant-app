@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Management Portal</title>
+    <!-- Premium Icons Set -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        /* ==========================================================================
+           1. THEME & STRICT DARK MODE VARIABLES
+           ========================================================================== */
+        :root {
+            /* Force native dark mode for scrollbars, inputs, date pickers */
+            color-scheme: dark;
+
+            --bg-base: #06060a;
+            --glass-bg: rgba(22, 22, 30, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.05);
+            --glass-highlight: rgba(255, 255, 255, 0.1);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-dark: #64748b;
+            
+            --accent: #8b5cf6;
+            --accent-glow: rgba(139, 92, 246, 0.3);
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            
+            --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ==========================================================================
+           2. GLOBAL RESET & BASE STYLES
+           ========================================================================== */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font-main); }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            position: relative;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Ambient Background Orbs */
+        body::before, body::after {
+            content: ''; position: absolute; width: 50vw; height: 50vw;
+            border-radius: 50%; filter: blur(150px); z-index: -1; opacity: 0.15;
+            animation: breathe 20s infinite alternate ease-in-out;
+            pointer-events: none;
+        }
+        body::before { top: -10%; left: -10%; background: radial-gradient(circle, var(--accent) 0%, transparent 70%); }
+        body::after { bottom: -10%; right: -10%; background: radial-gradient(circle, var(--info) 0%, transparent 70%); animation-delay: -10s; }
+
+        @keyframes breathe {
+            0% { transform: scale(0.8) translate(0, 0); }
+            100% { transform: scale(1.2) translate(5vw, 5vw); }
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+        /* ==========================================================================
+           3. GLASSMORPHISM COMPONENTS
+           ========================================================================== */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: var(--glass-shadow);
+            padding: 24px;
+        }
+
+        h1 { font-size: 1.8rem; font-weight: 500; margin-bottom: 24px; letter-spacing: -0.02em; }
+        h2 { font-size: 1.2rem; font-weight: 500; margin-bottom: 16px; color: var(--text-main); }
+        h3 { font-size: 1rem; font-weight: 500; color: var(--text-muted); }
+
+        /* Forms & Inputs (Strict Dark) */
+        input, select, textarea {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: var(--transition);
+            width: 100%;
+        }
+        input::placeholder, textarea::placeholder { color: rgba(255, 255, 255, 0.2); }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-glow);
+            background: rgba(0, 0, 0, 0.6);
+        }
+        
+        /* Select dropdown dark styling */
+        select option { background-color: #0f1015; color: var(--text-main); padding: 10px; }
+
+        /* Buttons */
+        .btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            padding: 10px 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            transition: var(--transition);
+        }
+        .btn:hover { background: rgba(255, 255, 255, 0.08); transform: translateY(-1px); }
+        .btn:active { transform: translateY(1px); }
+        
+        .btn-primary { background: var(--accent); border-color: var(--accent); box-shadow: 0 4px 15px var(--accent-glow); color: #fff; }
+        .btn-primary:hover { background: #7c3aed; }
+        .btn-success { background: var(--success); border-color: var(--success); color: #fff; }
+        .btn-danger { color: var(--danger); border-color: rgba(239, 68, 68, 0.3); }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+        /* Toggles */
+        .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1); transition: 0.3s; border-radius: 34px;
+            border: 1px solid var(--glass-border);
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px;
+            background-color: var(--text-main); transition: 0.3s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--success); border-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* Tables */
+        .table-container { overflow-x: auto; border-radius: 12px; border: 1px solid var(--glass-border); }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        th { background: rgba(0,0,0,0.2); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+        tr:hover td { background: rgba(255, 255, 255, 0.02); }
+        tr:last-child td { border-bottom: none; }
+
+        /* Badges */
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 500; display: inline-block; border: 1px solid transparent; }
+        .badge-active { background: rgba(16, 185, 129, 0.1); color: var(--success); border-color: rgba(16, 185, 129, 0.2); }
+        .badge-inactive { background: rgba(239, 68, 68, 0.1); color: var(--danger); border-color: rgba(239, 68, 68, 0.2); }
+        .badge-special { background: rgba(139, 92, 246, 0.1); color: var(--accent); border-color: rgba(139, 92, 246, 0.2); }
+
+        /* ==========================================================================
+           4. LAYOUT & VIEWS
+           ========================================================================== */
+        /* App Layout */
+        #view-app { display: flex; width: 100vw; height: 100vh; }
+
+        /* Sidebar Navigation */
+        #sidebar {
+            width: 260px; display: flex; flex-direction: column;
+            background: linear-gradient(180deg, rgba(20,20,30,0.6) 0%, rgba(10,10,15,0.8) 100%);
+            backdrop-filter: blur(20px); border-right: 1px solid var(--glass-border); z-index: 10;
+        }
+        .brand-header { padding: 24px; display: flex; align-items: center; gap: 12px; font-size: 1.2rem; font-weight: 600; border-bottom: 1px solid var(--glass-border); }
+        .nav-menu { flex: 1; padding: 20px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+        .nav-item {
+            display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px;
+            color: var(--text-muted); cursor: pointer; transition: var(--transition); font-size: 0.95rem;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.03); color: var(--text-main); }
+        .nav-item.active { background: var(--glass-highlight); color: var(--text-main); font-weight: 500; }
+        
+        /* Main Content */
+        #main-content { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+        
+        /* Top Header (Business Day Control) */
+        .top-header {
+            padding: 20px 32px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); backdrop-filter: blur(10px);
+        }
+        .day-status-pill {
+            display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 20px;
+            font-size: 0.9rem; font-weight: 500; border: 1px solid var(--glass-border);
+        }
+        .day-status-pill.active { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: var(--success); }
+        .day-status-pill.closed { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: var(--danger); }
+
+        /* Sections Routing */
+        .app-section {
+            flex: 1; padding: 32px; overflow-y: auto; display: none;
+            animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .app-section.active { display: block; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Dashboard Grids */
+        .widget-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
+        .widget { display: flex; flex-direction: column; gap: 8px; }
+        .widget-val { font-size: 2.5rem; font-weight: 600; letter-spacing: -0.05em; line-height: 1; }
+        .widget-label { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        /* Utility Classes */
+        .flex-row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+        .mt-4 { margin-top: 16px; } .mb-4 { margin-bottom: 16px; } .mb-6 { margin-bottom: 24px; }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); border: 1px dashed var(--glass-border); border-radius: 16px; }
+
+        /* Print Styles for Reports */
+        @media print {
+            body { background: #fff !important; color: #000 !important; }
+            #sidebar, .top-header, .btn, .no-print { display: none !important; }
+            .app-section { display: block !important; overflow: visible !important; padding: 0 !important; }
+            .glass-panel { box-shadow: none !important; border: 1px solid #ccc !important; background: transparent !important; }
+            * { text-shadow: none !important; filter: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==========================================================================
+         MAIN APPLICATION INTERFACE
+         ========================================================================== -->
+    <div id="view-app">
+        <!-- Sidebar -->
+        <aside id="sidebar">
+            <div class="brand-header">
+                <i class="ph-fill ph-intersect" style="color: var(--accent);"></i> System Center
+            </div>
+            <nav class="nav-menu">
+                <div class="nav-item active" data-target="sec-dashboard"><i class="ph ph-squares-four"></i> Operations Dashboard</div>
+                <div class="nav-item" data-target="sec-tables"><i class="ph ph-armchair"></i> Tables & Orders</div>
+                <div class="nav-item" data-target="sec-menu"><i class="ph ph-list-dashes"></i> Menu Management</div>
+                <div class="nav-item" data-target="sec-employees"><i class="ph ph-users"></i> Employee Directory</div>
+                <div class="nav-item" data-target="sec-schedule"><i class="ph ph-calendar-check"></i> Staff Scheduling</div>
+                <div class="nav-item" data-target="sec-sales"><i class="ph ph-trend-up"></i> Sales & Revenue</div>
+                <div class="nav-item" data-target="sec-reports"><i class="ph ph-file-archive"></i> Daily Reports</div>
+                <div class="nav-item" data-target="sec-complaints"><i class="ph ph-warning-circle"></i> Complaints</div>
+                <div class="nav-item" data-target="sec-expenses"><i class="ph ph-receipt"></i> Expenses & Advances</div>
+                <div style="flex: 1; min-height: 20px;"></div>
+                <div class="nav-item" data-target="sec-settings"><i class="ph ph-gear"></i> Settings</div>
+            </nav>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main id="main-content">
+            <!-- Business Day Header -->
+            <header class="top-header no-print">
+                <div id="ui-day-status" class="day-status-pill closed">
+                    <i class="ph ph-moon"></i> Business Day Closed
+                </div>
+                <button id="btn-toggle-day" class="btn btn-primary" onclick="App.toggleBusinessDay()">
+                    Start Business Day
+                </button>
+            </header>
+
+            <!-- 1. OPERATIONS DASHBOARD -->
+            <section id="sec-dashboard" class="app-section active">
+                <h1>Operations Overview</h1>
+                <div class="widget-grid">
+                    <div class="glass-panel widget"><span class="widget-label">Today's Revenue</span><span class="widget-val" id="dash-revenue">₹0</span></div>
+                    <div class="glass-panel widget"><span class="widget-label">Today's Orders</span><span class="widget-val" id="dash-orders">0</span></div>
+                    <div class="glass-panel widget"><span class="widget-label">Active Tables</span><span class="widget-val" id="dash-tables">0 / 0</span></div>
+                    <div class="glass-panel widget"><span class="widget-label">Staff Present</span><span class="widget-val" id="dash-staff">0</span></div>
+                </div>
+                <div class="glass-panel">
+                    <h2>System Readiness</h2>
+                    <p style="color: var(--text-muted); line-height: 1.6;">Welcome to the Management Portal. Currently running strictly in offline LocalStorage mode. Future API/Cloud sync hooks are structurally prepared. Use the Business Day controls to archive daily operations safely.</p>
+                </div>
+            </section>
+
+            <!-- 2. TABLES & ORDERS -->
+            <section id="sec-tables" class="app-section">
+                <div class="flex-row" style="justify-content: space-between; margin-bottom: 24px;">
+                    <h1>Tables & Orders</h1>
+                    <button class="btn btn-primary" onclick="UI.Tables.addTable()"><i class="ph ph-plus"></i> Add Table</button>
+                </div>
+                <div id="ui-tables-grid" class="widget-grid">
+                    <!-- Injected via JS -->
+                </div>
+            </section>
+
+            <!-- 3. MENU MANAGEMENT -->
+            <section id="sec-menu" class="app-section">
+                <h1>Menu Management</h1>
+                <div class="glass-panel mb-6">
+                    <h2>Add New Item</h2>
+                    <form id="form-menu" class="flex-row" onsubmit="UI.Menu.handleSubmit(event)">
+                        <input type="text" id="menu-name" placeholder="Item Name" required style="flex: 2; min-width: 200px;">
+                        <select id="menu-cat" required style="flex: 1; min-width: 150px;"></select>
+                        <div style="position: relative; flex: 1; min-width: 120px;">
+                            <span style="position: absolute; left: 12px; top: 12px; color: var(--text-muted);">₹</span>
+                            <input type="number" id="menu-price" placeholder="Price" step="1" required style="padding-left: 30px;">
+                        </div>
+                        <select id="menu-tag" style="flex: 1; min-width: 150px;">
+                            <option value="">No Special Tag</option>
+                            <option value="Manager Recommended">Manager Rec.</option>
+                            <option value="Chef Recommendation">Chef Rec.</option>
+                            <option value="Best Seller">Best Seller</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary">Add Item</button>
+                    </form>
+                </div>
+                <div class="glass-panel">
+                    <div class="table-container">
+                        <table id="table-menu-list">
+                            <thead><tr><th>Item Name</th><th>Category</th><th>Price</th><th>Tag</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. EMPLOYEE DIRECTORY -->
+            <section id="sec-employees" class="app-section">
+                <h1>Employee Directory</h1>
+                <div class="glass-panel mb-6">
+                    <form id="form-employee" class="flex-row" onsubmit="UI.Employees.handleSubmit(event)">
+                        <input type="text" id="emp-name" placeholder="Full Name" required style="flex: 2;">
+                        <input type="text" id="emp-role" placeholder="Role (e.g. Server, Chef)" required style="flex: 1;">
+                        <input type="text" id="emp-phone" placeholder="Phone (Optional)" style="flex: 1;">
+                        <button type="submit" class="btn btn-primary">Register</button>
+                    </form>
+                </div>
+                <div class="glass-panel">
+                    <div class="table-container">
+                        <table id="table-emp-list">
+                            <thead><tr><th>Name</th><th>Role</th><th>Contact</th><th>Actions</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. STAFF SCHEDULING -->
+            <section id="sec-schedule" class="app-section">
+                <h1>Staff Scheduling</h1>
+                <p class="mb-6" style="color: var(--text-muted);">Toggle switches to mark employees as present for the current business day.</p>
+                <div class="glass-panel">
+                    <div id="ui-schedule-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                </div>
+            </section>
+
+            <!-- 6. SALES -->
+            <section id="sec-sales" class="app-section">
+                <h1>Today's Sales</h1>
+                <div class="widget-grid mb-6">
+                    <div class="glass-panel widget"><span class="widget-label">Food Revenue</span><span class="widget-val" id="sales-food">₹0</span></div>
+                    <div class="glass-panel widget"><span class="widget-label">Beverage Revenue</span><span class="widget-val" id="sales-bev">₹0</span></div>
+                    <div class="glass-panel widget"><span class="widget-label">Cash Received</span><span class="widget-val" id="sales-cash">₹0</span></div>
+                    <div class="glass-panel widget"><span class="widget-label">Digital / UPI</span><span class="widget-val" id="sales-digital">₹0</span></div>
+                </div>
+                <div class="glass-panel empty-state">
+                    <i class="ph ph-chart-bar" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;"></i>
+                    <p>Detailed sales breakdown will populate as orders are completed.</p>
+                </div>
+            </section>
+
+            <!-- 7. REPORTS -->
+            <section id="sec-reports" class="app-section">
+                <h1>Archived Reports</h1>
+                <div class="flex-row mb-6 no-print">
+                    <select id="report-date-selector" style="max-width: 300px;" onchange="UI.Reports.render()"></select>
+                    <button class="btn" onclick="window.print()"><i class="ph ph-printer"></i> Print PDF</button>
+                </div>
+                <div id="ui-report-content" class="glass-panel">
+                    <!-- Report Details Injected Here -->
+                </div>
+            </section>
+
+            <!-- 8. COMPLAINTS -->
+            <section id="sec-complaints" class="app-section">
+                <h1>Complaints Log</h1>
+                <div class="glass-panel mb-6">
+                    <form id="form-complaint" class="flex-row" onsubmit="UI.Complaints.handleSubmit(event)">
+                        <input type="text" id="comp-table" placeholder="Table No." required style="width: 120px;">
+                        <input type="text" id="comp-name" placeholder="Customer Name" style="flex: 1;">
+                        <input type="text" id="comp-text" placeholder="Complaint Details" required style="flex: 3;">
+                        <button type="submit" class="btn btn-primary">Log Issue</button>
+                    </form>
+                </div>
+                <div class="glass-panel">
+                    <div class="table-container">
+                        <table id="table-complaints">
+                            <thead><tr><th>Table</th><th>Customer</th><th>Details</th><th>Time</th><th>Status</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 9. EXPENSES -->
+            <section id="sec-expenses" class="app-section">
+                <h1>Expenses & Advances</h1>
+                <div class="glass-panel mb-6">
+                    <form id="form-expense" class="flex-row" onsubmit="UI.Expenses.handleSubmit(event)">
+                        <select id="exp-type" style="width: 150px;">
+                            <option value="Cash">Cash Expense</option>
+                            <option value="Credit">Credit Expense</option>
+                            <option value="Advance">Staff Advance</option>
+                        </select>
+                        <input type="text" id="exp-vendor" placeholder="Vendor / Staff Name" required style="flex: 1;">
+                        <input type="text" id="exp-desc" placeholder="Description" required style="flex: 2;">
+                        <div style="position: relative; width: 150px;">
+                            <span style="position: absolute; left: 12px; top: 12px; color: var(--text-muted);">₹</span>
+                            <input type="number" id="exp-amount" placeholder="Amount" step="1" required style="padding-left: 30px;">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Record</button>
+                    </form>
+                </div>
+                <div class="glass-panel">
+                    <div class="table-container">
+                        <table id="table-expenses">
+                            <thead><tr><th>Type</th><th>Vendor/Staff</th><th>Description</th><th>Amount</th><th>Date</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 10. SETTINGS -->
+            <section id="sec-settings" class="app-section">
+                <h1 style="color: var(--danger);">System Settings & Data</h1>
+                <div class="glass-panel" style="max-width: 600px;">
+                    <h2>Data Management</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 24px;">All data is securely stored in browser LocalStorage. Ensure you have exported archived reports before wiping system data.</p>
+                    <div class="flex-row">
+                        <button class="btn btn-danger" onclick="App.factoryReset()"><i class="ph ph-warning"></i> Factory Reset</button>
+                        <button class="btn" disabled style="opacity: 0.5;"><i class="ph ph-cloud-arrow-up"></i> Cloud Sync (Future)</button>
+                    </div>
+                    
+                    <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 32px 0;">
+                    
+                    <h2>Configuration Placeholders</h2>
+                    <div class="flex-row">
+                        <input type="text" value="Indian Rupees (₹)" disabled style="opacity: 0.5;">
+                        <input type="text" value="Strict Dark Mode Enforced" disabled style="opacity: 0.5;">
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ==========================================================================
+         JAVASCRIPT ARCHITECTURE
+         ========================================================================== -->
+    <script>
+        /**
+         * STATE MANAGEMENT (Modular LocalStorage Wrapper)
+         */
+        const State = {
+            data: {
+                system: { isDayActive: false, currentDayId: null },
+                categories: ['Food', 'Beverage'],
+                menu: [],
+                tables: [],
+                employees: [],
+                expenses: [],
+                complaints: [],
+                archives: {} // Stores closed business days
+            },
+            
+            init() {
+                const stored = localStorage.getItem('MgmtSysData');
+                if (stored) this.data = JSON.parse(stored);
+                else this.save();
+            },
+            
+            save() {
+                localStorage.setItem('MgmtSysData', JSON.stringify(this.data));
+                UI.updateAll();
+            },
+
+            wipe() {
+                if(confirm('CRITICAL WARNING: This will permanently delete ALL data, menus, employees, and archived reports. Continue?')) {
+                    localStorage.removeItem('MgmtSysData');
+                    location.reload();
+                }
+            }
+        };
+
+        /**
+         * BUSINESS LOGIC CONTROLLERS
+         */
+        const Logic = {
+            generateId: (prefix) => `${prefix}_${Date.now().toString(36)}`,
+            
+            toggleBusinessDay() {
+                const sys = State.data.system;
+                if (sys.isDayActive) {
+                    if(!confirm('Close Business Day? This will archive today\'s data and reset active operations.')) return;
+                    
+                    // Archive Current Day
+                    const archiveId = sys.currentDayId || new Date().toISOString().split('T')[0];
+                    State.data.archives[archiveId] = {
+                        date: new Date().toLocaleString(),
+                        revenue: UI.Dashboard.calculateRevenue(),
+                        expenses: [...State.data.expenses],
+                        complaints: [...State.data.complaints]
+                    };
+
+                    // Reset Daily Operations
+                    sys.isDayActive = false;
+                    sys.currentDayId = null;
+                    State.data.expenses = [];
+                    State.data.complaints = [];
+                    State.data.tables.forEach(t => { t.orders = []; t.status = 'Available'; });
+                    
+                    State.save();
+                } else {
+                    if(!confirm('Start new Business Day?')) return;
+                    sys.isDayActive = true;
+                    sys.currentDayId = new Date().toISOString().split('T')[0] + '_' + Date.now();
+                    State.save();
+                }
+                UI.Header.render();
+            }
+        };
+
+        /**
+         * USER INTERFACE RENDERING ENGINE
+         */
+        const UI = {
+            init() {
+                // Routing
+                document.querySelectorAll('.nav-item').forEach(el => {
+                    if (el.hasAttribute('data-target')) {
+                        el.addEventListener('click', (e) => this.Router.navigate(e.currentTarget));
+                    }
+                });
+                this.updateAll();
+                this.Header.render();
+            },
+
+            updateAll() {
+                this.Dashboard.render();
+                this.Tables.render();
+                this.Menu.render();
+                this.Employees.render();
+                this.Schedule.render();
+                this.Complaints.render();
+                this.Expenses.render();
+                this.Reports.populateDates();
+            },
+
+            Router: {
+                navigate(element) {
+                    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                    document.querySelectorAll('.app-section').forEach(s => s.classList.remove('active'));
+                    element.classList.add('active');
+                    document.getElementById(element.getAttribute('data-target')).classList.add('active');
+                }
+            },
+
+            Header: {
+                render() {
+                    const pill = document.getElementById('ui-day-status');
+                    const btn = document.getElementById('btn-toggle-day');
+                    if (State.data.system.isDayActive) {
+                        pill.className = 'day-status-pill active';
+                        pill.innerHTML = '<i class="ph ph-sun"></i> Business Day Active';
+                        btn.className = 'btn btn-danger';
+                        btn.innerText = 'Close Business Day';
+                    } else {
+                        pill.className = 'day-status-pill closed';
+                        pill.innerHTML = '<i class="ph ph-moon"></i> Business Day Closed';
+                        btn.className = 'btn btn-primary';
+                        btn.innerText = 'Start Business Day';
+                    }
+                }
+            },
+
+            Dashboard: {
+                calculateRevenue() { return 0; /* Placeholder for order totals */ },
+                render() {
+                    document.getElementById('dash-tables').innerText = `${State.data.tables.length} Total`;
+                    document.getElementById('dash-staff').innerText = State.data.employees.filter(e => e.isWorking).length;
+                }
+            },
+
+            Tables: {
+                addTable() {
+                    const name = prompt("Enter Table Name (Leave blank for auto-number):");
+                    if (name !== null) {
+                        const num = State.data.tables.length + 1;
+                        State.data.tables.push({
+                            id: Logic.generateId('tbl'),
+                            name: name.trim() || `Table ${num}`,
+                            status: 'Available',
+                            orders: []
+                        });
+                        State.save();
+                    }
+                },
+                render() {
+                    const grid = document.getElementById('ui-tables-grid');
+                    grid.innerHTML = '';
+                    if(!State.data.tables.length) { grid.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;">No tables configured.</div>`; return; }
+                    
+                    State.data.tables.forEach(t => {
+                        grid.innerHTML += `
+                            <div class="glass-panel widget" style="border-top: 4px solid ${t.status === 'Available' ? 'var(--success)' : 'var(--warning)'};">
+                                <div style="display:flex; justify-content:space-between;">
+                                    <h3>${t.name}</h3>
+                                    <button class="btn" style="padding:4px 8px;" onclick="UI.Tables.delete('${t.id}')"><i class="ph ph-trash" style="color:var(--danger)"></i></button>
+                                </div>
+                                <div style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);">Status: ${t.status}</div>
+                                <button class="btn btn-primary mt-4" style="width:100%;" ${!State.data.system.isDayActive ? 'disabled' : ''}>Manage Orders (Future)</button>
+                            </div>
+                        `;
+                    });
+                },
+                delete(id) {
+                    if(confirm("Delete this table?")) {
+                        State.data.tables = State.data.tables.filter(t => t.id !== id);
+                        State.save();
+                    }
+                }
+            },
+
+            Menu: {
+                handleSubmit(e) {
+                    e.preventDefault();
+                    State.data.menu.push({
+                        id: Logic.generateId('mnu'),
+                        name: document.getElementById('menu-name').value,
+                        category: document.getElementById('menu-cat').value,
+                        price: parseFloat(document.getElementById('menu-price').value),
+                        tag: document.getElementById('menu-tag').value,
+                        available: true
+                    });
+                    State.save();
+                    e.target.reset();
+                },
+                render() {
+                    // Populate Select
+                    const catSelect = document.getElementById('menu-cat');
+                    catSelect.innerHTML = State.data.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+                    
+                    // Populate Table
+                    const tbody = document.querySelector('#table-menu-list tbody');
+                    tbody.innerHTML = State.data.menu.length ? '' : '<tr><td colspan="6" class="empty-state" style="border:none;">No menu items.</td></tr>';
+                    
+                    State.data.menu.forEach(m => {
+                        const tagHtml = m.tag ? `<span class="badge badge-special">${m.tag}</span>` : '-';
+                        const availHtml = m.available ? `<span class="badge badge-active">Available</span>` : `<span class="badge badge-inactive">Unavailable</span>`;
+                        tbody.innerHTML += `
+                            <tr>
+                                <td style="font-weight:500;">${m.name}</td>
+                                <td>${m.category}</td>
+                                <td>₹${m.price.toFixed(2)}</td>
+                                <td>${tagHtml}</td>
+                                <td onclick="UI.Menu.toggleAvail('${m.id}')" style="cursor:pointer;">${availHtml}</td>
+                                <td><button class="btn" style="padding:6px;" onclick="UI.Menu.delete('${m.id}')"><i class="ph ph-trash" style="color:var(--danger)"></i></button></td>
+                            </tr>
+                        `;
+                    });
+                },
+                toggleAvail(id) {
+                    const item = State.data.menu.find(m => m.id === id);
+                    if(item) { item.available = !item.available; State.save(); }
+                },
+                delete(id) {
+                    if(confirm("Delete menu item?")) { State.data.menu = State.data.menu.filter(m => m.id !== id); State.save(); }
+                }
+            },
+
+            Employees: {
+                handleSubmit(e) {
+                    e.preventDefault();
+                    State.data.employees.push({
+                        id: Logic.generateId('emp'),
+                        name: document.getElementById('emp-name').value,
+                        role: document.getElementById('emp-role').value,
+                        phone: document.getElementById('emp-phone').value || 'N/A',
+                        isWorking: false
+                    });
+                    State.save();
+                    e.target.reset();
+                },
+                render() {
+                    const tbody = document.querySelector('#table-emp-list tbody');
+                    tbody.innerHTML = State.data.employees.length ? '' : '<tr><td colspan="4" class="empty-state" style="border:none;">No employees found.</td></tr>';
+                    State.data.employees.forEach(emp => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td style="font-weight:500;">${emp.name}</td>
+                                <td>${emp.role}</td>
+                                <td>${emp.phone}</td>
+                                <td><button class="btn" style="padding:6px;" onclick="UI.Employees.delete('${emp.id}')"><i class="ph ph-trash" style="color:var(--danger)"></i></button></td>
+                            </tr>
+                        `;
+                    });
+                },
+                delete(id) {
+                    if(confirm("Delete employee?")) { State.data.employees = State.data.employees.filter(e => e.id !== id); State.save(); }
+                }
+            },
+
+            Schedule: {
+                render() {
+                    const list = document.getElementById('ui-schedule-list');
+                    list.innerHTML = State.data.employees.length ? '' : '<div class="empty-state">No staff available to schedule.</div>';
+                    State.data.employees.forEach(emp => {
+                        list.innerHTML += `
+                            <div class="flex-row" style="justify-content:space-between; background: rgba(0,0,0,0.2); padding: 16px; border-radius: 12px; border: 1px solid var(--glass-border);">
+                                <div><div style="font-weight:500; font-size:1.1rem;">${emp.name}</div><div style="font-size:0.85rem; color:var(--text-muted);">${emp.role}</div></div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" ${emp.isWorking ? 'checked' : ''} onchange="UI.Schedule.toggle('${emp.id}', this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        `;
+                    });
+                },
+                toggle(id, status) {
+                    const emp = State.data.employees.find(e => e.id === id);
+                    if(emp) { emp.isWorking = status; State.save(); }
+                }
+            },
+
+            Complaints: {
+                handleSubmit(e) {
+                    e.preventDefault();
+                    State.data.complaints.push({
+                        id: Logic.generateId('cmp'),
+                        table: document.getElementById('comp-table').value,
+                        name: document.getElementById('comp-name').value || 'Anonymous',
+                        text: document.getElementById('comp-text').value,
+                        time: new Date().toLocaleTimeString(),
+                        resolved: false
+                    });
+                    State.save();
+                    e.target.reset();
+                },
+                render() {
+                    const tbody = document.querySelector('#table-complaints tbody');
+                    tbody.innerHTML = State.data.complaints.length ? '' : '<tr><td colspan="5" class="empty-state" style="border:none;">No complaints logged today.</td></tr>';
+                    State.data.complaints.forEach(c => {
+                        const status = c.resolved ? '<span class="badge badge-active">Resolved</span>' : '<span class="badge badge-inactive">Pending</span>';
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${c.table}</td><td>${c.name}</td><td>${c.text}</td><td>${c.time}</td>
+                                <td onclick="UI.Complaints.toggle('${c.id}')" style="cursor:pointer;">${status}</td>
+                            </tr>
+                        `;
+                    });
+                },
+                toggle(id) {
+                    const c = State.data.complaints.find(x => x.id === id);
+                    if(c) { c.resolved = !c.resolved; State.save(); }
+                }
+            },
+
+            Expenses: {
+                handleSubmit(e) {
+                    e.preventDefault();
+                    State.data.expenses.push({
+                        id: Logic.generateId('exp'),
+                        type: document.getElementById('exp-type').value,
+                        vendor: document.getElementById('exp-vendor').value,
+                        desc: document.getElementById('exp-desc').value,
+                        amount: parseFloat(document.getElementById('exp-amount').value),
+                        date: new Date().toLocaleDateString()
+                    });
+                    State.save();
+                    e.target.reset();
+                },
+                render() {
+                    const tbody = document.querySelector('#table-expenses tbody');
+                    tbody.innerHTML = State.data.expenses.length ? '' : '<tr><td colspan="5" class="empty-state" style="border:none;">No expenses logged today.</td></tr>';
+                    State.data.expenses.forEach(x => {
+                        tbody.innerHTML += `<tr><td>${x.type}</td><td>${x.vendor}</td><td>${x.desc}</td><td style="color:var(--warning);">₹${x.amount.toFixed(2)}</td><td>${x.date}</td></tr>`;
+                    });
+                }
+            },
+
+            Reports: {
+                populateDates() {
+                    const select = document.getElementById('report-date-selector');
+                    const keys = Object.keys(State.data.archives).reverse();
+                    if(!keys.length) { select.innerHTML = '<option value="">No Archived Reports</option>'; this.render(); return; }
+                    select.innerHTML = keys.map(k => `<option value="${k}">${State.data.archives[k].date}</option>`).join('');
+                    this.render();
+                },
+                render() {
+                    const select = document.getElementById('report-date-selector');
+                    const content = document.getElementById('ui-report-content');
+                    if(!select.value) { content.innerHTML = '<div class="empty-state">No Data</div>'; return; }
+                    
+                    const archive = State.data.archives[select.value];
+                    content.innerHTML = `
+                        <h2 style="margin-bottom: 24px; border-bottom: 1px solid var(--glass-border); padding-bottom: 12px;">Report for: ${archive.date}</h2>
+                        <div class="widget-grid">
+                            <div class="widget"><span class="widget-label">Recorded Revenue</span><span class="widget-val">₹${archive.revenue}</span></div>
+                            <div class="widget"><span class="widget-label">Total Expenses</span><span class="widget-val" style="color:var(--warning);">₹${archive.expenses.reduce((s,x)=>s+x.amount,0)}</span></div>
+                            <div class="widget"><span class="widget-label">Complaints Logged</span><span class="widget-val">${archive.complaints.length}</span></div>
+                        </div>
+                        <p style="color: var(--text-muted); margin-top: 24px; font-style: italic;">Note: This is a read-only archived snapshot. To modify past records, use the Database API (Future feature).</p>
+                    `;
+                }
+            }
+        };
+
+        /**
+         * GLOBAL APP CONTROLLER
+         */
+        const App = {
+            init() {
+                State.init();
+                UI.init();
+            },
+            toggleBusinessDay() { Logic.toggleBusinessDay(); },
+            factoryReset() { State.wipe(); }
+        };
+
+        // Bootstrap App on Load
+        document.addEventListener('DOMContentLoaded', () => App.init());
+    </script>
+</body>
+</html>
