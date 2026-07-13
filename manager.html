@@ -259,17 +259,24 @@
             <section id="sec-employees" class="app-section">
                 <h1>Employee Directory</h1>
                 <div class="glass-panel mb-6">
-                    <form id="form-employee" class="flex-row" onsubmit="UI.Employees.handleSubmit(event)">
-                        <input type="text" id="emp-name" placeholder="Full Name" required>
-                        <input type="text" id="emp-role" placeholder="Role (e.g. Server, Chef)" required>
-                        <input type="text" id="emp-phone" placeholder="Phone (Optional)">
-                        <button type="submit" class="btn btn-primary">Register</button>
+                    <h2 style="margin-bottom: 16px;">Register Staff Login</h2>
+                    <form id="form-employee" onsubmit="UI.Employees.handleSubmit(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                        <div class="flex-row">
+                            <input type="text" id="emp-name" placeholder="Full Name" required style="flex: 1;">
+                            <input type="text" id="emp-username" placeholder="Login Username" required style="flex: 1;">
+                            <input type="password" id="emp-pass" placeholder="Login Password" required style="flex: 1;">
+                        </div>
+                        <div class="flex-row">
+                            <input type="text" id="emp-role" placeholder="Role (e.g. Server, Chef)" required style="flex: 1;">
+                            <input type="text" id="emp-phone" placeholder="Phone (Optional)" style="flex: 1;">
+                            <button type="submit" class="btn btn-primary" style="flex: 1;">Register Credentials</button>
+                        </div>
                     </form>
                 </div>
                 <div class="glass-panel">
                     <div class="table-container">
                         <table id="table-emp-list">
-                            <thead><tr><th>Name</th><th>Role</th><th>Contact</th><th>Actions</th></tr></thead>
+                            <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Contact</th><th>Actions</th></tr></thead>
                             <tbody></tbody>
                         </table>
                     </div>
@@ -279,7 +286,7 @@
             <!-- 5. STAFF SCHEDULING -->
             <section id="sec-schedule" class="app-section">
                 <h1>Staff Scheduling</h1>
-                <p class="mb-6" style="color: var(--text-muted);">Toggle switches to mark employees as present for the current business day. This grants them access to the Employee Portal.</p>
+                <p class="mb-6" style="color: var(--text-muted);">Toggle switches to mark employees as present for the current business day. This instantly grants them access to the Employee Portal.</p>
                 <div class="glass-panel">
                     <div id="ui-schedule-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
                 </div>
@@ -388,6 +395,19 @@
          ========================================================================== -->
     <script>
         /**
+         * SECURITY UTILS
+         */
+        const Utils = {
+            generateId: (prefix) => `${prefix}_${Date.now().toString(36)}`,
+            async hashPassword(password) {
+                const msgBuffer = new TextEncoder().encode(password);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+        };
+
+        /**
          * STATE MANAGEMENT (Modular LocalStorage Wrapper)
          */
         const State = {
@@ -406,7 +426,7 @@
                 const stored = localStorage.getItem('MgmtSysData');
                 if (stored) {
                     const parsed = JSON.parse(stored);
-                    this.data = { ...this.data, ...parsed }; // Merge to ensure new keys exist
+                    this.data = { ...this.data, ...parsed }; 
                 } else {
                     this.save();
                 }
@@ -429,8 +449,6 @@
          * BUSINESS LOGIC CONTROLLERS
          */
         const Logic = {
-            generateId: (prefix) => `${prefix}_${Date.now().toString(36)}`,
-            
             getAllOrders() {
                 return State.data.tables.flatMap(t => t.orders || []);
             },
@@ -487,7 +505,6 @@
                 this.updateAll();
                 this.Header.render();
                 
-                // Init settings fields
                 document.getElementById('set-guidelines').value = State.data.system.guidelines || "";
             },
 
@@ -563,7 +580,7 @@
                                 totalBills++;
                                 if(bill.paymentMethod === 'Cash') totalCash += bill.amount;
                                 else if(bill.paymentMethod === 'UPI') totalUpi += bill.amount;
-                                else totalCard += bill.amount; // Card or Others
+                                else totalCard += bill.amount;
                             });
                         }
                     });
@@ -573,7 +590,6 @@
                     document.getElementById('sales-upi').innerText = `₹${totalUpi.toFixed(2)}`;
                     document.getElementById('sales-card').innerText = `₹${totalCard.toFixed(2)}`;
 
-                    // Log Rendering
                     const tbody = document.querySelector('#table-sales-log tbody');
                     if(allOrders.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="5" class="empty-state" style="border:none;">No orders processed today.</td></tr>';
@@ -596,7 +612,7 @@
                     const name = prompt("Enter Table Name (Leave blank for auto-number):");
                     if (name !== null) {
                         const num = State.data.tables.length + 1;
-                        State.data.tables.push({ id: Logic.generateId('tbl'), name: name.trim() || `Table ${num}`, status: 'Available', orders: [] });
+                        State.data.tables.push({ id: Utils.generateId('tbl'), name: name.trim() || `Table ${num}`, status: 'Available', orders: [] });
                         State.save();
                     }
                 },
@@ -638,7 +654,7 @@
             Menu: {
                 handleSubmit(e) {
                     e.preventDefault();
-                    State.data.menu.push({ id: Logic.generateId('mnu'), name: document.getElementById('menu-name').value, category: document.getElementById('menu-cat').value, price: parseFloat(document.getElementById('menu-price').value), tag: document.getElementById('menu-tag').value, available: true });
+                    State.data.menu.push({ id: Utils.generateId('mnu'), name: document.getElementById('menu-name').value, category: document.getElementById('menu-cat').value, price: parseFloat(document.getElementById('menu-price').value), tag: document.getElementById('menu-tag').value, available: true });
                     State.save();
                     e.target.reset();
                 },
@@ -672,19 +688,41 @@
             },
 
             Employees: {
-                handleSubmit(e) {
+                async handleSubmit(e) {
                     e.preventDefault();
-                    State.data.employees.push({ id: Logic.generateId('emp'), name: document.getElementById('emp-name').value, role: document.getElementById('emp-role').value, phone: document.getElementById('emp-phone').value || 'N/A', isWorking: false });
+                    const usernameInput = document.getElementById('emp-username').value.trim().toLowerCase();
+                    
+                    // Prevent duplicate usernames
+                    if(State.data.employees.find(emp => emp.username === usernameInput)) {
+                        alert("That username is already taken by another employee.");
+                        return;
+                    }
+
+                    const passInput = document.getElementById('emp-pass').value;
+                    const hashedPassword = await Utils.hashPassword(passInput);
+
+                    State.data.employees.push({ 
+                        id: Utils.generateId('emp'), 
+                        name: document.getElementById('emp-name').value, 
+                        username: usernameInput,
+                        hash: hashedPassword,
+                        role: document.getElementById('emp-role').value, 
+                        phone: document.getElementById('emp-phone').value || 'N/A', 
+                        isWorking: false 
+                    });
+                    
                     State.save();
                     e.target.reset();
+                    alert("Employee credentials registered successfully!");
                 },
                 render() {
                     const tbody = document.querySelector('#table-emp-list tbody');
-                    tbody.innerHTML = State.data.employees.length ? '' : '<tr><td colspan="4" class="empty-state" style="border:none;">No employees found.</td></tr>';
+                    tbody.innerHTML = State.data.employees.length ? '' : '<tr><td colspan="5" class="empty-state" style="border:none;">No employees found.</td></tr>';
                     State.data.employees.forEach(emp => {
                         tbody.innerHTML += `
                             <tr>
                                 <td data-label="Name" style="font-weight:500; text-transform: capitalize;">${emp.name}</td>
+                                <td data-label="Username" style="color: var(--accent);">${emp.username}</td>
                                 <td data-label="Role">${emp.role}</td>
                                 <td data-label="Contact">${emp.phone}</td>
                                 <td data-label="Actions"><button class="btn" style="padding:6px;" onclick="UI.Employees.delete('${emp.id}')"><i class="ph ph-trash" style="color:var(--danger)"></i></button></td>
@@ -692,7 +730,7 @@
                         `;
                     });
                 },
-                delete(id) { if(confirm("Delete employee?")) { State.data.employees = State.data.employees.filter(e => e.id !== id); State.save(); } }
+                delete(id) { if(confirm("Delete employee? Their credentials will be permanently removed.")) { State.data.employees = State.data.employees.filter(e => e.id !== id); State.save(); } }
             },
 
             Schedule: {
@@ -702,7 +740,7 @@
                     State.data.employees.forEach(emp => {
                         list.innerHTML += `
                             <div class="flex-row" style="justify-content:space-between; background: rgba(0,0,0,0.2); padding: 16px; border-radius: 12px; border: 1px solid var(--glass-border);">
-                                <div style="flex: 1;"><div style="font-weight:500; font-size:1.1rem; text-transform: capitalize;">${emp.name}</div><div style="font-size:0.85rem; color:var(--text-muted);">${emp.role}</div></div>
+                                <div style="flex: 1;"><div style="font-weight:500; font-size:1.1rem; text-transform: capitalize;">${emp.name}</div><div style="font-size:0.85rem; color:var(--text-muted);">${emp.role} | @${emp.username}</div></div>
                                 <label class="toggle-switch">
                                     <input type="checkbox" ${emp.isWorking ? 'checked' : ''} onchange="UI.Schedule.toggle('${emp.id}', this.checked)">
                                     <span class="slider"></span>
@@ -737,7 +775,6 @@
                         `;
                     });
                     
-                    // Show/Hide Notification Badge in Sidebar
                     document.getElementById('comp-badge').style.display = hasUnresolved ? 'inline-block' : 'none';
                 },
                 toggle(id) {
@@ -749,7 +786,7 @@
             Expenses: {
                 handleSubmit(e) {
                     e.preventDefault();
-                    State.data.expenses.push({ id: Logic.generateId('exp'), type: document.getElementById('exp-type').value, vendor: document.getElementById('exp-vendor').value, desc: document.getElementById('exp-desc').value, amount: parseFloat(document.getElementById('exp-amount').value), date: new Date().toLocaleDateString() });
+                    State.data.expenses.push({ id: Utils.generateId('exp'), type: document.getElementById('exp-type').value, vendor: document.getElementById('exp-vendor').value, desc: document.getElementById('exp-desc').value, amount: parseFloat(document.getElementById('exp-amount').value), date: new Date().toLocaleDateString() });
                     State.save();
                     e.target.reset();
                 },
@@ -812,11 +849,10 @@
                 State.init();
                 UI.init();
 
-                // Live Synchronization Listener
                 window.addEventListener('storage', (e) => {
                     if (e.key === 'MgmtSysData') {
-                        State.init(); // Reload state from storage
-                        UI.updateAll(); // Instantly update dashboard
+                        State.init(); 
+                        UI.updateAll(); 
                     }
                 });
             },
