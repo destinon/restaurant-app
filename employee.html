@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Portal</title>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        /* ==========================================================================
+           1. THEME & STRICT DARK MODE VARIABLES
+           ========================================================================== */
+        :root {
+            color-scheme: dark;
+            --bg-base: #06060a;
+            --glass-bg: rgba(22, 22, 30, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.05);
+            --glass-highlight: rgba(255, 255, 255, 0.1);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            
+            --accent: #8b5cf6;
+            --accent-glow: rgba(139, 92, 246, 0.3);
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            
+            --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ==========================================================================
+           2. GLOBAL RESET & BASE STYLES
+           ========================================================================== */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font-main); }
+        body { background-color: var(--bg-base); color: var(--text-main); min-height: 100vh; overflow: hidden; display: flex; position: relative; -webkit-font-smoothing: antialiased; }
+        
+        body::before, body::after {
+            content: ''; position: absolute; width: 50vw; height: 50vw;
+            border-radius: 50%; filter: blur(150px); z-index: -1; opacity: 0.15;
+            animation: breathe 20s infinite alternate ease-in-out; pointer-events: none;
+        }
+        body::before { top: -10%; left: -10%; background: radial-gradient(circle, var(--accent) 0%, transparent 70%); }
+        body::after { bottom: -10%; right: -10%; background: radial-gradient(circle, var(--info) 0%, transparent 70%); animation-delay: -10s; }
+        @keyframes breathe { 0% { transform: scale(0.8) translate(0, 0); } 100% { transform: scale(1.2) translate(5vw, 5vw); } }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+        /* ==========================================================================
+           3. UI COMPONENTS
+           ========================================================================== */
+        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid var(--glass-border); border-radius: 16px; box-shadow: var(--glass-shadow); padding: 24px; }
+        h1 { font-size: 1.8rem; font-weight: 500; margin-bottom: 24px; letter-spacing: -0.02em; }
+        h2 { font-size: 1.2rem; font-weight: 500; margin-bottom: 16px; color: var(--text-main); }
+        
+        input, select, textarea { background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-main); padding: 12px 16px; border-radius: 10px; font-size: 0.95rem; outline: none; transition: var(--transition); width: 100%; }
+        input::placeholder, textarea::placeholder { color: rgba(255, 255, 255, 0.2); }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); background: rgba(0, 0, 0, 0.6); }
+        select option { background-color: #0f1015; color: var(--text-main); padding: 10px; }
+
+        .btn { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); color: var(--text-main); padding: 10px 18px; border-radius: 10px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: var(--transition); }
+        .btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: var(--accent); border-color: var(--accent); box-shadow: 0 4px 15px var(--accent-glow); color: #fff; }
+        .btn-primary:hover:not(:disabled) { background: #7c3aed; }
+        .btn-danger { color: var(--danger); border-color: rgba(239, 68, 68, 0.3); }
+
+        .flex-row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+        .mb-4 { margin-bottom: 16px; } .mb-6 { margin-bottom: 24px; }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); border: 1px dashed var(--glass-border); border-radius: 12px; }
+
+        /* ==========================================================================
+           4. LAYOUTS
+           ========================================================================== */
+        /* Auth Views */
+        #view-login, #view-denied { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 100; transition: opacity 0.4s; }
+        .login-card { width: 100%; max-width: 400px; text-align: center; }
+        #auth-error { color: var(--danger); font-size: 0.9rem; margin-top: 16px; display: none; }
+
+        /* App Layout */
+        #view-app { display: flex; width: 100vw; height: 100vh; opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+        
+        #sidebar { width: 260px; display: flex; flex-direction: column; background: linear-gradient(180deg, rgba(20,20,30,0.9) 0%, rgba(10,10,15,0.95) 100%); backdrop-filter: blur(20px); border-right: 1px solid var(--glass-border); z-index: 1000; transition: transform 0.3s ease; }
+        .brand-header { padding: 24px; display: flex; align-items: center; gap: 12px; font-size: 1.2rem; font-weight: 600; border-bottom: 1px solid var(--glass-border); }
+        .nav-menu { flex: 1; padding: 20px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; color: var(--text-muted); cursor: pointer; transition: var(--transition); font-size: 0.95rem; }
+        .nav-item:hover { background: rgba(255,255,255,0.03); color: var(--text-main); }
+        .nav-item.active { background: var(--glass-highlight); color: var(--text-main); font-weight: 500; }
+        
+        #main-content { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+        .top-header { padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); backdrop-filter: blur(10px); z-index: 900; }
+        #mobile-menu-btn { display: none; background: transparent; border: 1px solid var(--glass-border); color: var(--text-main); padding: 8px; border-radius: 8px; cursor: pointer; font-size: 1.5rem; }
+        
+        .app-section { flex: 1; padding: 32px; overflow-y: auto; display: none; animation: fadeUp 0.3s forwards; }
+        .app-section.active { display: block; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 999; }
+
+        /* Order Cart Specific */
+        .menu-item-card { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--glass-border); border-radius: 8px; background: rgba(0,0,0,0.2); margin-bottom: 8px; }
+        .cart-item { border: 1px solid var(--glass-border); border-radius: 8px; padding: 12px; margin-bottom: 12px; background: rgba(255,255,255,0.02); }
+        .qty-btn { width: 28px; height: 28px; border-radius: 4px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.1); color: #fff; cursor: pointer; }
+
+        @media (max-width: 900px) {
+            #sidebar { position: fixed; top: 0; bottom: 0; left: 0; transform: translateX(-100%); }
+            #sidebar.mobile-active { transform: translateX(0); }
+            #sidebar-overlay.mobile-active { display: block; }
+            #mobile-menu-btn { display: block; }
+            .app-section { padding: 16px; }
+            .flex-row { flex-direction: column; align-items: stretch; }
+            .flex-row > * { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==========================================================================
+         LOGIN VIEW
+         ========================================================================== -->
+    <div id="view-login">
+        <div class="glass-panel login-card">
+            <div style="font-size: 3.5rem; color: var(--accent); margin-bottom: 16px;"><i class="ph-fill ph-user-circle"></i></div>
+            <h1>Staff Login</h1>
+            <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 0.95rem;">Enter your credentials to access the system.</p>
+            
+            <form id="form-login" style="display: flex; flex-direction: column; gap: 16px;">
+                <!-- Notice the input handles both uppercase and lowercase seamlessly now -->
+                <input type="text" id="login-user" placeholder="Username" required>
+                <input type="password" id="login-pass" placeholder="Password" required>
+                <button type="submit" class="btn btn-primary" style="padding: 14px;">Secure Login</button>
+                <div id="auth-error">Sorry, wrong username or password.</div>
+            </form>
+            <a href="index.html" style="display: block; margin-top: 24px; color: var(--text-muted); font-size: 0.9rem; text-decoration: none;">&larr; Back to Portal Selection</a>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+         ACCESS DENIED VIEW
+         ========================================================================== -->
+    <div id="view-denied" style="display: none;">
+        <div class="glass-panel login-card" style="border-color: rgba(239, 68, 68, 0.3);">
+            <div style="font-size: 4rem; color: var(--danger); margin-bottom: 16px;"><i class="ph-fill ph-prohibit"></i></div>
+            <h1 style="color: var(--danger);">Access Denied</h1>
+            <p style="color: var(--text-muted); margin-bottom: 24px; line-height: 1.6;">You are not scheduled to work today. Please contact your manager to update your shift status.</p>
+            <button class="btn" onclick="Auth.logout()">Return to Login</button>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+         MAIN EMPLOYEE APP
+         ========================================================================== -->
+    <div id="sidebar-overlay" onclick="UI.Sidebar.close()"></div>
+    
+    <div id="view-app">
+        <aside id="sidebar">
+            <div class="brand-header"><i class="ph-fill ph-intersect" style="color: var(--accent);"></i> Staff Portal</div>
+            <nav class="nav-menu">
+                <div class="nav-item active" data-target="sec-dashboard"><i class="ph ph-squares-four"></i> Dashboard</div>
+                <div class="nav-item" data-target="sec-order"><i class="ph ph-receipt"></i> New Order</div>
+                <div class="nav-item" data-target="sec-complaints"><i class="ph ph-warning-circle"></i> File Complaint</div>
+                <div style="flex: 1; min-height: 20px;"></div>
+                <div class="nav-item" onclick="UI.Dashboard.logGoogleReview()"><i class="ph ph-star"></i> Log Google Review</div>
+                <div class="nav-item" style="color: var(--danger);" onclick="Auth.logout()"><i class="ph ph-sign-out"></i> End Shift</div>
+            </nav>
+        </aside>
+
+        <main id="main-content">
+            <header class="top-header">
+                <button id="mobile-menu-btn" onclick="UI.Sidebar.open()"><i class="ph ph-list"></i></button>
+                <div style="font-weight: 500;">Welcome, <span id="ui-emp-name" style="color: var(--accent); text-transform: capitalize;">Employee</span></div>
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
+                    <span style="width: 10px; height: 10px; background: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success);"></span> On Shift
+                </div>
+            </header>
+
+            <!-- 1. DASHBOARD -->
+            <section id="sec-dashboard" class="app-section active">
+                <h1>Shift Overview</h1>
+                
+                <div class="flex-row mb-6">
+                    <div class="glass-panel" style="flex: 1;">
+                        <h3 style="margin-bottom: 8px;">Orders Processed Today</h3>
+                        <div style="font-size: 2.5rem; font-weight: 600;" id="dash-order-count">0</div>
+                    </div>
+                    <div class="glass-panel" style="flex: 2; background: rgba(139, 92, 246, 0.05); border-color: rgba(139, 92, 246, 0.2);">
+                        <h2 style="color: var(--accent);"><i class="ph ph-info"></i> Today's Guidelines</h2>
+                        <ul id="dash-guidelines" style="color: var(--text-main); margin-left: 20px; line-height: 1.8;">
+                            <!-- Injected -->
+                        </ul>
+                    </div>
+                </div>
+
+                <h2>Your Recent Orders</h2>
+                <div id="dash-recent-orders" style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Injected -->
+                </div>
+            </section>
+
+            <!-- 2. NEW ORDER -->
+            <section id="sec-order" class="app-section">
+                <h1>Create Order</h1>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+                    
+                    <!-- Left: Details & Menu -->
+                    <div>
+                        <div class="glass-panel mb-6">
+                            <h2>Order Details</h2>
+                            <div class="flex-row">
+                                <select id="ord-table" required style="flex: 1;"></select>
+                                <input type="number" id="ord-guests" placeholder="Guests" min="1" required style="width: 100px;">
+                            </div>
+                            <input type="text" id="ord-customer" placeholder="Customer Name (Optional)" class="mt-4" style="margin-top: 16px;">
+                        </div>
+
+                        <div class="glass-panel">
+                            <h2>Available Menu</h2>
+                            <input type="text" id="menu-search" placeholder="Search items..." class="mb-4" oninput="UI.Order.renderMenu()">
+                            <div id="menu-list" style="max-height: 400px; overflow-y: auto; padding-right: 8px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Cart & Billing -->
+                    <div>
+                        <div class="glass-panel" style="position: sticky; top: 0;">
+                            <h2>Current Cart</h2>
+                            <div id="cart-list" style="min-height: 150px; margin-bottom: 16px;"></div>
+                            
+                            <div style="border-top: 1px solid var(--glass-border); padding-top: 16px; margin-bottom: 16px; display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: 600;">
+                                <span>Total:</span>
+                                <span id="cart-total">₹0.00</span>
+                            </div>
+
+                            <h3 class="mb-4">Billing / Split</h3>
+                            <div id="split-bills-container"></div>
+                            
+                            <button class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1.1rem; margin-top: 16px;" onclick="UI.Order.submit()" id="btn-submit-order">
+                                Process Order
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. COMPLAINTS -->
+            <section id="sec-complaints" class="app-section">
+                <h1>Log Customer Complaint</h1>
+                <div class="glass-panel" style="max-width: 600px;">
+                    <p style="color: var(--text-muted); margin-bottom: 24px;">Record issues immediately. Managers are notified instantly.</p>
+                    <form onsubmit="UI.Complaints.submit(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                        <div class="flex-row">
+                            <select id="cmp-table" required style="flex: 1;"></select>
+                            <input type="text" id="cmp-customer" placeholder="Customer Name (Optional)" style="flex: 2;">
+                        </div>
+                        <textarea id="cmp-text" placeholder="Detailed description of the issue..." rows="4" required></textarea>
+                        <button type="submit" class="btn btn-danger" style="align-self: flex-start;">Submit Complaint</button>
+                    </form>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ==========================================================================
+         JAVASCRIPT LOGIC
+         ========================================================================== -->
+    <script>
+        /**
+         * 1. SECURITY & UTILS
+         */
+        const Utils = {
+            // Web Crypto API SHA-256 Hashing
+            async hashPassword(password) {
+                const msgBuffer = new TextEncoder().encode(password);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            },
+            generateId: (prefix) => `${prefix}_${Date.now().toString(36)}`
+        };
+
+        // Authorized User Hashes (Strictly lowercase keys now)
+        // gopal verma (123456), parth deshpande (234567)
+        const VALID_USERS = {
+            "gopal verma": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+            "parth deshpande": "102b51b9765a56a3e899f7cf0ce38e5cb8deac8a9cf29f55e8c1482a17684126"
+        };
+
+        /**
+         * 2. STATE MANAGEMENT (Syncs with Manager via LocalStorage)
+         */
+        const State = {
+            data: {},
+            currentUser: null,
+            
+            refresh() {
+                const stored = localStorage.getItem('MgmtSysData');
+                if (stored) {
+                    this.data = JSON.parse(stored);
+                } else {
+                    // Fallback empty state if manager hasn't initialized
+                    this.data = { system: { orderCount: 0, dailyReviews: 0, guidelines: "1. Push Chef's Specials\n2. Maintain cleanliness." }, tables: [], menu: [], employees: [], complaints: [] };
+                }
+            },
+            save() {
+                localStorage.setItem('MgmtSysData', JSON.stringify(this.data));
+            },
+            
+            ensureEmployeesExist() {
+                if(!this.data.employees) this.data.employees = [];
+                Object.keys(VALID_USERS).forEach(name => {
+                    // Check if the employee exists (case-insensitive check)
+                    if(!this.data.employees.find(e => e.name.toLowerCase() === name)) {
+                        this.data.employees.push({ id: Utils.generateId('emp'), name: name, role: 'Staff', phone: '', isWorking: false });
+                    }
+                });
+                this.save();
+            }
+        };
+
+        /**
+         * 3. AUTHENTICATION CONTROLLER
+         */
+        const Auth = {
+            async login(e) {
+                e.preventDefault();
+                // Force the input to lowercase instantly for case-insensitive matching
+                const user = document.getElementById('login-user').value.trim().toLowerCase();
+                const pass = document.getElementById('login-pass').value;
+                const errorEl = document.getElementById('auth-error');
+                
+                State.refresh();
+                State.ensureEmployeesExist();
+
+                if (VALID_USERS[user]) {
+                    const hashed = await Utils.hashPassword(pass);
+                    if (hashed === VALID_USERS[user]) {
+                        sessionStorage.setItem('EmpSession', user);
+                        State.currentUser = user; // Stored securely in lowercase
+                        errorEl.style.display = 'none';
+                        this.checkAccess();
+                        return;
+                    }
+                }
+                
+                errorEl.style.display = 'block';
+            },
+
+            logout() {
+                sessionStorage.removeItem('EmpSession');
+                State.currentUser = null;
+                document.getElementById('view-app').style.opacity = '0';
+                document.getElementById('view-denied').style.display = 'none';
+                setTimeout(() => {
+                    document.getElementById('view-login').style.display = 'flex';
+                    document.getElementById('view-login').style.opacity = '1';
+                }, 400);
+            },
+
+            checkAccess() {
+                State.refresh(); // Get latest manager assignments
+                // Find employee ignoring case, in case manager added them manually with capital letters
+                const userRecord = State.data.employees.find(e => e.name.toLowerCase() === State.currentUser);
+                
+                document.getElementById('view-login').style.display = 'none';
+
+                if (userRecord && userRecord.isWorking) {
+                    // Access Granted
+                    document.getElementById('view-denied').style.display = 'none';
+                    document.getElementById('view-app').style.opacity = '1';
+                    document.getElementById('view-app').style.pointerEvents = 'all';
+                    UI.init();
+                } else {
+                    // Access Denied
+                    document.getElementById('view-app').style.opacity = '0';
+                    document.getElementById('view-app').style.pointerEvents = 'none';
+                    const denied = document.getElementById('view-denied');
+                    denied.style.display = 'flex';
+                    setTimeout(() => denied.style.opacity = '1', 50);
+                }
+            }
+        };
+
+        /**
+         * 4. USER INTERFACE ENGINE
+         */
+        const UI = {
+            cart: [],
+            splitCount: 1,
+
+            init() {
+                document.getElementById('ui-emp-name').innerText = State.currentUser;
+                
+                // Routing
+                document.querySelectorAll('.nav-item').forEach(el => {
+                    if (el.hasAttribute('data-target')) {
+                        el.addEventListener('click', (e) => this.Router.navigate(e.currentTarget));
+                    }
+                });
+                
+                this.updateAll();
+            },
+
+            updateAll() {
+                this.Dashboard.render();
+                this.Order.renderSetup();
+                this.Order.renderMenu();
+                this.Order.renderCart();
+                this.Complaints.renderSetup();
+            },
+
+            Sidebar: {
+                open() { document.getElementById('sidebar').classList.add('mobile-active'); document.getElementById('sidebar-overlay').classList.add('mobile-active'); },
+                close() { document.getElementById('sidebar').classList.remove('mobile-active'); document.getElementById('sidebar-overlay').classList.remove('mobile-active'); }
+            },
+
+            Router: {
+                navigate(element) {
+                    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                    document.querySelectorAll('.app-section').forEach(s => s.classList.remove('active'));
+                    element.classList.add('active');
+                    document.getElementById(element.getAttribute('data-target')).classList.add('active');
+                    UI.Sidebar.close();
+                }
+            },
+
+            Dashboard: {
+                render() {
+                    // Guidelines
+                    const gText = State.data.system.guidelines || "No specific guidelines for today.";
+                    document.getElementById('dash-guidelines').innerHTML = gText.split('\n').map(g => `<li>${g}</li>`).join('');
+
+                    // Recent Orders by this employee (case insensitive check)
+                    const allOrders = State.data.tables.flatMap(t => t.orders || []);
+                    const myOrders = allOrders.filter(o => o.createdBy && o.createdBy.toLowerCase() === State.currentUser).reverse();
+                    
+                    document.getElementById('dash-order-count').innerText = myOrders.length;
+
+                    const container = document.getElementById('dash-recent-orders');
+                    if(myOrders.length === 0) {
+                        container.innerHTML = '<div class="empty-state">No orders processed yet today.</div>';
+                    } else {
+                        container.innerHTML = myOrders.slice(0, 5).map(o => `
+                            <div class="glass-panel" style="padding: 16px; display: flex; justify-content: space-between;">
+                                <div><span style="color:var(--text-muted);">Order #${o.orderNo}</span> &nbsp;|&nbsp; Table: ${o.tableName}</div>
+                                <div style="font-weight: 500;">₹${o.total.toFixed(2)}</div>
+                            </div>
+                        `).join('');
+                    }
+                },
+                logGoogleReview() {
+                    State.refresh();
+                    if(!State.data.system.dailyReviews) State.data.system.dailyReviews = 0;
+                    State.data.system.dailyReviews += 1;
+                    State.save();
+                    alert("Google Review successfully logged!");
+                }
+            },
+
+            Order: {
+                renderSetup() {
+                    const sel = document.getElementById('ord-table');
+                    if(!State.data.tables.length) {
+                        sel.innerHTML = '<option disabled selected>No Active Tables</option>';
+                    } else {
+                        sel.innerHTML = '<option value="" disabled selected>Select Table</option>' + 
+                            State.data.tables.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                    }
+                },
+                renderMenu() {
+                    const container = document.getElementById('menu-list');
+                    const search = document.getElementById('menu-search').value.toLowerCase();
+                    
+                    const available = State.data.menu.filter(m => m.available && m.name.toLowerCase().includes(search));
+                    
+                    if(!available.length) {
+                        container.innerHTML = '<div style="color:var(--text-muted); padding: 10px;">No items available.</div>';
+                        return;
+                    }
+
+                    container.innerHTML = available.map(m => `
+                        <div class="menu-item-card">
+                            <div>
+                                <div style="font-weight: 500;">${m.name}</div>
+                                <div style="font-size: 0.85rem; color: var(--text-muted);">₹${m.price.toFixed(2)}</div>
+                            </div>
+                            <button class="btn" style="padding: 6px 12px;" onclick="UI.Order.addToCart('${m.id}')"><i class="ph ph-plus"></i></button>
+                        </div>
+                    `).join('');
+                },
+                addToCart(id) {
+                    const item = State.data.menu.find(m => m.id === id);
+                    if(item) {
+                        const existing = UI.cart.find(c => c.id === id);
+                        if(existing) existing.qty += 1;
+                        else UI.cart.push({ ...item, qty: 1, note: '' });
+                        this.renderCart();
+                    }
+                },
+                updateQty(index, delta) {
+                    UI.cart[index].qty += delta;
+                    if(UI.cart[index].qty <= 0) UI.cart.splice(index, 1);
+                    this.renderCart();
+                },
+                updateNote(index, val) {
+                    UI.cart[index].note = val;
+                },
+                renderCart() {
+                    const container = document.getElementById('cart-list');
+                    const totalEl = document.getElementById('cart-total');
+                    
+                    if(!UI.cart.length) {
+                        container.innerHTML = '<div style="color:var(--text-muted);">Cart is empty.</div>';
+                        totalEl.innerText = '₹0.00';
+                        this.renderSplits();
+                        return;
+                    }
+
+                    let total = 0;
+                    container.innerHTML = UI.cart.map((c, i) => {
+                        total += c.price * c.qty;
+                        return `
+                        <div class="cart-item">
+                            <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                                <span style="font-weight:500;">${c.name}</span>
+                                <span>₹${(c.price * c.qty).toFixed(2)}</span>
+                            </div>
+                            <div style="display:flex; gap: 8px; align-items:center;">
+                                <button class="qty-btn" onclick="UI.Order.updateQty(${i}, -1)">-</button>
+                                <span>${c.qty}</span>
+                                <button class="qty-btn" onclick="UI.Order.updateQty(${i}, 1)">+</button>
+                                <input type="text" placeholder="Note (e.g. No onion)" value="${c.note}" onchange="UI.Order.updateNote(${i}, this.value)" style="padding:4px 8px; font-size:0.85rem; margin-left: auto; width: 120px;">
+                            </div>
+                        </div>`;
+                    }).join('');
+                    
+                    totalEl.innerText = `₹${total.toFixed(2)}`;
+                    this.renderSplits();
+                },
+                addSplit() { UI.splitCount++; this.renderSplits(); },
+                removeSplit() { if(UI.splitCount > 1) UI.splitCount--; this.renderSplits(); },
+                renderSplits() {
+                    const container = document.getElementById('split-bills-container');
+                    if(!UI.cart.length) { container.innerHTML = ''; return; }
+
+                    const total = UI.cart.reduce((s,c) => s + (c.price * c.qty), 0);
+                    const splitAmt = (total / UI.splitCount).toFixed(2);
+
+                    let html = `<div style="display:flex; gap: 8px; margin-bottom: 12px;">
+                        <button class="btn" style="flex:1;" onclick="UI.Order.removeSplit()">-</button>
+                        <div style="flex:2; text-align:center; padding-top:8px;">${UI.splitCount} Bill(s)</div>
+                        <button class="btn" style="flex:1;" onclick="UI.Order.addSplit()">+</button>
+                    </div>`;
+
+                    for(let i=1; i<=UI.splitCount; i++) {
+                        html += `
+                        <div class="flex-row" style="margin-bottom: 8px;">
+                            <span style="width: 50px; color: var(--text-muted);">Bill ${i}:</span>
+                            <input type="number" id="split-amt-${i}" class="split-amt-input" value="${splitAmt}" step="0.01" style="flex:1; padding:8px;">
+                            <select id="split-pay-${i}" style="flex:1; padding:8px;">
+                                <option>Cash</option><option>UPI</option><option>Card</option><option>Others</option>
+                            </select>
+                        </div>`;
+                    }
+                    container.innerHTML = html;
+                },
+                submit() {
+                    if(!UI.cart.length) return alert("Cart is empty.");
+                    const tableId = document.getElementById('ord-table').value;
+                    const guests = document.getElementById('ord-guests').value;
+                    if(!tableId || !guests) return alert("Please select table and guests.");
+
+                    const btn = document.getElementById('btn-submit-order');
+                    btn.disabled = true;
+                    btn.innerText = "Processing...";
+
+                    // Sync state immediately to prevent race conditions on order numbering
+                    State.refresh();
+                    
+                    if(!State.data.system.orderCount) State.data.system.orderCount = 0;
+                    State.data.system.orderCount += 1;
+                    const orderNo = State.data.system.orderCount;
+
+                    const targetTable = State.data.tables.find(t => t.id === tableId);
+                    
+                    // Process Splits
+                    const bills = [];
+                    let sumCheck = 0;
+                    for(let i=1; i<=UI.splitCount; i++) {
+                        const amt = parseFloat(document.getElementById(`split-amt-${i}`).value);
+                        sumCheck += amt;
+                        bills.push({
+                            id: Utils.generateId('bil'),
+                            amount: amt,
+                            paymentMethod: document.getElementById(`split-pay-${i}`).value,
+                            status: 'Paid' // Marking paid on creation for employee flow
+                        });
+                    }
+
+                    const total = UI.cart.reduce((s,c) => s + (c.price * c.qty), 0);
+                    if(Math.abs(sumCheck - total) > 0.1) {
+                        alert("Split bill amounts do not match total order value.");
+                        btn.disabled = false; btn.innerText = "Process Order";
+                        return;
+                    }
+
+                    const newOrder = {
+                        id: Utils.generateId('ord'),
+                        orderNo: orderNo,
+                        tableId: tableId,
+                        tableName: targetTable.name,
+                        customer: document.getElementById('ord-customer').value || 'Walk-in',
+                        guests: guests,
+                        time: new Date().toLocaleTimeString(),
+                        createdBy: State.currentUser,
+                        items: [...UI.cart],
+                        total: total,
+                        bills: bills,
+                        status: 'Active'
+                    };
+
+                    targetTable.orders.push(newOrder);
+                    targetTable.status = 'Occupied';
+                    State.save();
+
+                    // Reset Form
+                    UI.cart = [];
+                    UI.splitCount = 1;
+                    document.getElementById('ord-customer').value = '';
+                    document.getElementById('ord-guests').value = '';
+                    this.renderCart();
+                    UI.Dashboard.render();
+                    
+                    btn.disabled = false;
+                    btn.innerText = "Process Order";
+                    alert(`Order #${orderNo} submitted successfully!`);
+                    document.querySelector('[data-target="sec-dashboard"]').click();
+                }
+            },
+
+            Complaints: {
+                renderSetup() {
+                    const sel = document.getElementById('cmp-table');
+                    if(!State.data.tables.length) {
+                        sel.innerHTML = '<option disabled selected>No Active Tables</option>';
+                    } else {
+                        sel.innerHTML = '<option value="" disabled selected>Table No.</option>' + 
+                            State.data.tables.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+                    }
+                },
+                submit(e) {
+                    e.preventDefault();
+                    State.refresh();
+                    State.data.complaints.push({
+                        id: Utils.generateId('cmp'),
+                        table: document.getElementById('cmp-table').value,
+                        name: document.getElementById('cmp-customer').value || 'Anonymous',
+                        text: document.getElementById('cmp-text').value,
+                        time: new Date().toLocaleTimeString(),
+                        resolved: false
+                    });
+                    State.save();
+                    e.target.reset();
+                    alert("Complaint logged to management.");
+                }
+            }
+        };
+
+        /**
+         * 5. LIVE SYNCHRONIZATION (Cross-Tab Communication)
+         */
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'MgmtSysData') {
+                if (State.currentUser) {
+                    Auth.checkAccess(); // Kick out if manager marked off-duty
+                    if(document.getElementById('view-app').style.opacity === '1') {
+                        UI.updateAll();
+                    }
+                }
+            }
+        });
+
+        // Initialize Form Events & Start System
+        document.getElementById('form-login').addEventListener('submit', (e) => Auth.login(e));
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedSession = sessionStorage.getItem('EmpSession');
+            if (savedSession) {
+                State.currentUser = savedSession;
+                Auth.checkAccess();
+            }
+        });
+
+    </script>
+</body>
+</html>
