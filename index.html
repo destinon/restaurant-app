@@ -3,147 +3,322 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Access Portal</title>
-    <!-- Premium Icons Set -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <title>Hotel Manager - Daily Report</title>
     <style>
-        /* ==========================================================================
-           1. THEME & STRICT DARK MODE VARIABLES (Matching Manager Portal)
-           ========================================================================== */
+        /* Base Reset & Typography */
         :root {
-            color-scheme: dark;
-
-            --bg-base: #06060a;
-            --glass-bg: rgba(22, 22, 30, 0.45);
-            --glass-border: rgba(255, 255, 255, 0.05);
-            --glass-highlight: rgba(255, 255, 255, 0.1);
-            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            
-            --accent: #8b5cf6;
-            --accent-glow: rgba(139, 92, 246, 0.3);
-            --info: #3b82f6;
-            
-            --font-main: 'Inter', system-ui, -apple-system, sans-serif;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --glass-bg: rgba(20, 20, 25, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f0f0f0;
+            --text-muted: #a0a0aa;
+            --input-bg: rgba(0, 0, 0, 0.3);
+            --accent: rgba(255, 255, 255, 0.15);
         }
-
-        /* ==========================================================================
-           2. GLOBAL RESET & BASE STYLES
-           ========================================================================== */
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font-main); }
 
         body {
-            background-color: var(--bg-base);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
-            -webkit-font-smoothing: antialiased;
+            margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0a0a0c; color: var(--text-main); min-height: 100vh; overflow-x: hidden;
+            display: flex; justify-content: center; padding: 40px 20px;
         }
 
-        /* Ambient Background Orbs */
-        body::before, body::after {
-            content: ''; position: absolute; width: 50vw; height: 50vw;
-            border-radius: 50%; filter: blur(150px); z-index: -1; opacity: 0.15;
-            animation: breathe 20s infinite alternate ease-in-out;
-            pointer-events: none;
-        }
-        body::before { top: -10%; left: -10%; background: radial-gradient(circle, var(--accent) 0%, transparent 70%); }
-        body::after { bottom: -10%; right: -10%; background: radial-gradient(circle, var(--info) 0%, transparent 70%); animation-delay: -10s; }
+        /* --- Active Lava Lamp Background --- */
+        .lava-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; overflow: hidden; filter: blur(60px); background: linear-gradient(45deg, #0a0a0c, #1a0b2e); }
+        .blob { position: absolute; opacity: 0.8; border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; animation: morph-and-move 12s infinite alternate ease-in-out; }
+        .blob-1 { width: 55vw; height: 55vw; background: #4a1122; top: -10%; left: -10%; animation-delay: 0s; }
+        .blob-2 { width: 45vw; height: 45vw; background: #0f384a; bottom: -10%; right: -10%; animation-duration: 15s; animation-direction: alternate-reverse; }
+        .blob-3 { width: 35vw; height: 35vw; background: #2a0a4a; top: 30%; left: 30%; animation-duration: 18s; }
 
-        @keyframes breathe {
-            0% { transform: scale(0.8) translate(0, 0); }
-            100% { transform: scale(1.2) translate(5vw, 5vw); }
+        @keyframes morph-and-move {
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
+            50% { transform: translate(10vw, 15vh) scale(1.1) rotate(90deg); border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+            100% { transform: translate(-10vw, -10vh) scale(0.9) rotate(180deg); border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
         }
 
-        /* ==========================================================================
-           3. LOGIN CARD (Glassmorphism)
-           ========================================================================== */
-        .login-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            box-shadow: var(--glass-shadow);
-            padding: 48px 40px;
-            width: 100%;
-            max-width: 420px;
-            text-align: center;
-            animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            position: relative;
-            z-index: 10;
-        }
+        /* --- Layout & Glassmorphism --- */
+        .container { width: 100%; max-width: 900px; z-index: 1; }
+        header { text-align: center; margin-bottom: 40px; }
+        h1 { font-weight: 300; letter-spacing: 2px; margin: 0 0 10px 0; }
+        p.subtitle { color: var(--text-muted); margin: 0; font-size: 0.9em; }
 
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 30px; margin-bottom: 30px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4); }
+        h2 { font-size: 1.2em; font-weight: 400; margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; }
 
-        h1 { font-size: 2rem; font-weight: 500; margin-bottom: 8px; letter-spacing: -0.02em; }
-        p { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 40px; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-size: 0.85em; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* ==========================================================================
-           4. BUTTONS
-           ========================================================================== */
-        .btn {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--glass-border);
-            color: var(--text-main);
-            padding: 16px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 1.05rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            width: 100%;
-            text-decoration: none;
-            transition: var(--transition);
-            margin-bottom: 16px;
-        }
+        input, textarea { background: var(--input-bg); border: 1px solid var(--glass-border); color: var(--text-main); padding: 12px 16px; border-radius: 10px; font-size: 1em; transition: all 0.3s ease; outline: none; box-sizing: border-box; width: 100%; }
+        input:focus, textarea:focus { background: rgba(0, 0, 0, 0.5); border-color: var(--accent); box-shadow: 0 0 10px rgba(255, 255, 255, 0.05); }
+        textarea { resize: vertical; min-height: 80px; }
+        input.readonly { background: rgba(255, 255, 255, 0.02); color: var(--accent); font-weight: bold; cursor: not-allowed; }
 
-        .btn:last-child { margin-bottom: 0; }
-        .btn:hover { background: rgba(255, 255, 255, 0.08); transform: translateY(-2px); }
-        .btn:active { transform: translateY(1px); }
-        
-        .btn-primary { 
-            background: var(--accent); 
-            border-color: var(--accent); 
-            box-shadow: 0 4px 15px var(--accent-glow); 
-            color: #fff; 
-        }
-        .btn-primary:hover { background: #7c3aed; }
+        .saved-list { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
+        .saved-list li { padding: 12px 16px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; font-size: 0.95em; }
+        .saved-list li:last-child { border-bottom: none; }
+        .saved-list li .record-info { display: flex; gap: 15px; }
+        .saved-list li .date { font-weight: bold; color: var(--text-main); }
+        .saved-list li .loc { color: var(--text-muted); }
 
+        .button-group { display: flex; gap: 15px; justify-content: flex-end; margin-top: 40px; flex-wrap: wrap; }
+        button { background: var(--glass-bg); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); color: var(--text-main); padding: 14px 28px; border-radius: 12px; font-size: 1em; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; }
+        button:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
+        button.primary { background: rgba(50, 100, 150, 0.3); border-color: rgba(50, 100, 150, 0.5); }
+        button.primary:hover { background: rgba(50, 100, 150, 0.5); }
+        button.export { background: rgba(46, 139, 87, 0.3); border-color: rgba(46, 139, 87, 0.5); }
+        button.export:hover { background: rgba(46, 139, 87, 0.5); }
+        button.cloud { background: rgba(138, 43, 226, 0.3); border-color: rgba(138, 43, 226, 0.5); }
+        button.cloud:hover { background: rgba(138, 43, 226, 0.5); }
+
+        .btn-delete { background: rgba(255, 50, 50, 0.15); border: 1px solid rgba(255, 50, 50, 0.3); color: #ffcccc; padding: 6px 12px; border-radius: 8px; font-size: 0.85em; text-transform: none; width: auto; transform: none; }
+        .btn-delete:hover { background: rgba(255, 50, 50, 0.4); color: white; transform: scale(1.05); }
+
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 10; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 1em; border: 1px solid rgba(255,255,255,0.2); }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
+        @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .button-group { justify-content: center; } button { width: 100%; } }
     </style>
 </head>
 <body>
 
-    <div class="login-card">
-        <div style="font-size: 3.5rem; color: var(--accent); margin-bottom: 20px;">
-            <i class="ph-fill ph-intersect"></i>
-        </div>
-        <h1>Access Portal</h1>
-        <p>Select your workspace to continue.</p>
-        
-        <!-- Redirects to the Manager Dashboard -->
-        <a href="manager.html" class="btn btn-primary">
-            <i class="ph ph-shield-check" style="font-size: 1.3rem;"></i> Manager Login
-        </a>
-        
-        <!-- Redirects to the future Employee Portal -->
-        <a href="employee.html" class="btn">
-            <i class="ph ph-user" style="font-size: 1.3rem;"></i> Employee Login
-        </a>
+    <div class="lava-container"><div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div></div>
+
+    <div class="container">
+        <header>
+            <h1>END OF DAY REPORT</h1>
+            <p class="subtitle">Managerial Operations & Analytics Dashboard</p>
+        </header>
+
+        <form id="eodForm">
+            <!-- Setup & Identification -->
+            <div class="glass-panel grid-2">
+                <div class="form-group"><label>Outlet Location / Number</label><input type="text" id="loc" required placeholder="e.g. Outlet 3"></div>
+                <div class="form-group"><label>Date</label><input type="date" id="date" required></div>
+            </div>
+
+            <!-- Billing & Sales -->
+            <div class="glass-panel">
+                <h2>Billing & Sales</h2>
+                <div class="grid-3">
+                    <div class="form-group"><label>First Bill No.</label><input type="number" id="billFirst" placeholder="1"></div>
+                    <div class="form-group"><label>Last Bill No.</label><input type="number" id="billLast" placeholder="100"></div>
+                    <div class="form-group"><label>Total Bills (Auto)</label><input type="text" id="billTotal" class="readonly calc-trigger" readonly value="0"></div>
+                    <div class="form-group"><label>Delivery Sale (INR)</label><input type="number" id="saleDel" class="calc-trigger" placeholder="0"></div>
+                    <div class="form-group"><label>Banquet Sale (INR)</label><input type="number" id="saleBanq" class="calc-trigger" placeholder="0"></div>
+                    <div class="form-group"><label>ODC Sale (INR)</label><input type="number" id="saleODC" class="calc-trigger" placeholder="0"></div>
+                    <div class="form-group"><label>Total Food Sale (INR)</label><input type="number" id="saleFood" class="calc-trigger" placeholder="0"></div>
+                    <div class="form-group"><label>Total Beverage Sale (INR)</label><input type="number" id="saleBev" class="calc-trigger" placeholder="0"></div>
+                    <div class="form-group"><label>Total Pax</label><input type="number" id="pax" class="calc-trigger" placeholder="0"></div>
+                </div>
+            </div>
+
+            <!-- Auto-Calculated Dashboard Metrics -->
+            <div class="glass-panel">
+                <h2>Daily Revenue & Metrics</h2>
+                <div class="grid-3">
+                    <div class="form-group"><label>Total Revenue of the Day (INR)</label><input type="text" id="calcRev" class="readonly" readonly value="₹0"></div>
+                    <div class="form-group"><label>APC (Total Rev / Pax)</label><input type="text" id="calcAPC" class="readonly" readonly value="₹0.00"></div>
+                    <div class="form-group"><label>Avg Bill (Total Rev / Bills)</label><input type="text" id="calcAvgBill" class="readonly" readonly value="₹0.00"></div>
+                </div>
+            </div>
+
+            <!-- Staffing, Feedback & Expenses Condensed for brevity -->
+            <div class="glass-panel">
+                <h2>Staff Overview</h2>
+                <div class="grid-2">
+                    <div class="form-group"><label>Total Staff On Board</label><input type="number" id="staffOn" placeholder="0"></div>
+                    <div class="form-group"><label>Staff Weekly Off (Qty)</label><input type="number" id="staffOff" placeholder="0"></div>
+                    <div class="form-group"><label>Absent Staff (Qty)</label><input type="number" id="staffAbs" placeholder="0"></div>
+                    <div class="form-group"><label>Not Available</label><input type="number" id="staffNA" placeholder="0"></div>
+                </div>
+            </div>
+
+            <div class="glass-panel">
+                <h2>Feedback & Operations</h2>
+                <div class="form-group" style="margin-bottom: 20px;"><label>Today's Target (Push Up)</label><input type="text" id="target" placeholder="Enter target goals..."></div>
+                <div class="form-group" style="margin-bottom: 20px;"><label>Google Reviews Generated Today</label><textarea id="reviews" placeholder="List reviews..."></textarea></div>
+                <div class="form-group"><label>Any Complaints</label><textarea id="complaints" placeholder="Log complaints..."></textarea></div>
+            </div>
+
+            <div class="glass-panel">
+                <h2>Daily Expenses</h2>
+                <div class="grid-2">
+                    <div class="form-group"><label>Cash Expenses (INR)</label><textarea id="expCash" placeholder="Itemize cash expenses..."></textarea></div>
+                    <div class="form-group"><label>Credit Expenses (INR)</label><textarea id="expCredit" placeholder="Itemize credit expenses..."></textarea></div>
+                </div>
+            </div>
+
+            <!-- DISPLAY SAVED RECORDS -->
+            <div class="glass-panel">
+                <h2>Saved Records Archive</h2>
+                <ul id="savedList" class="saved-list"></ul>
+            </div>
+
+            <!-- NEW: CLOUD SYNC CONFIGURATION -->
+            <div class="glass-panel">
+                <h2>Cloud Sync Configuration</h2>
+                <p style="font-size: 0.85em; color: var(--text-muted); margin-bottom: 15px;">Paste your secure Google Apps Script Webhook URL here to backup directly to your Google Drive.</p>
+                <div class="form-group">
+                    <label>Google Drive Webhook Link</label>
+                    <input type="text" id="driveWebhookUrl" placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec">
+                </div>
+                <div class="button-group" style="margin-top: 15px;">
+                    <button type="button" class="cloud" onclick="backupToDrive()">Backup to Google Drive</button>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="button-group">
+                <button type="button" class="export" onclick="exportToCSV()">Download CSV to Device</button>
+                <button type="submit" class="primary">Save End of Day to Memory</button>
+            </div>
+        </form>
     </div>
 
+    <div id="toast">Ready!</div>
+
+    <script>
+        document.getElementById('date').valueAsDate = new Date();
+        loadSavedDays(); 
+
+        // Load saved Webhook URL if it exists
+        document.getElementById('driveWebhookUrl').value = localStorage.getItem('hotelWebhookUrl') || '';
+        document.getElementById('driveWebhookUrl').addEventListener('input', function() {
+            localStorage.setItem('hotelWebhookUrl', this.value);
+        });
+
+        document.getElementById('billFirst').addEventListener('input', calculateBills);
+        document.getElementById('billLast').addEventListener('input', calculateBills);
+
+        function calculateBills() {
+            const first = parseInt(document.getElementById('billFirst').value);
+            const last = parseInt(document.getElementById('billLast').value);
+            if (!isNaN(first) && !isNaN(last) && last >= first) {
+                document.getElementById('billTotal').value = (last - first) + 1;
+            } else { document.getElementById('billTotal').value = 0; }
+            calculateMetrics(); 
+        }
+
+        const calcTriggers = document.querySelectorAll('.calc-trigger');
+        calcTriggers.forEach(input => { input.addEventListener('input', calculateMetrics); });
+
+        function calculateMetrics() {
+            const del = parseFloat(document.getElementById('saleDel').value) || 0;
+            const banq = parseFloat(document.getElementById('saleBanq').value) || 0;
+            const odc = parseFloat(document.getElementById('saleODC').value) || 0;
+            const food = parseFloat(document.getElementById('saleFood').value) || 0;
+            const bev = parseFloat(document.getElementById('saleBev').value) || 0;
+            const pax = parseFloat(document.getElementById('pax').value) || 0;
+            const bills = parseFloat(document.getElementById('billTotal').value) || 0;
+            const totalRevenue = del + banq + odc + food + bev;
+            const apc = pax > 0 ? (totalRevenue / pax) : 0;
+            const avgBill = bills > 0 ? (totalRevenue / bills) : 0;
+
+            document.getElementById('calcRev').value = '₹' + totalRevenue.toLocaleString('en-IN');
+            document.getElementById('calcAPC').value = '₹' + apc.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('calcAvgBill').value = '₹' + avgBill.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        document.getElementById('eodForm').addEventListener('submit', function(e) {
+            e.preventDefault(); 
+            const record = {
+                "id": Date.now().toString(), "Date": document.getElementById('date').value, "Location": document.getElementById('loc').value,
+                "First Bill No": document.getElementById('billFirst').value, "Last Bill No": document.getElementById('billLast').value,
+                "Total Bills": document.getElementById('billTotal').value, "Delivery Sale": document.getElementById('saleDel').value,
+                "Banquet Sale": document.getElementById('saleBanq').value, "ODC Sale": document.getElementById('saleODC').value,
+                "Total Food Sale": document.getElementById('saleFood').value, "Total Bev Sale": document.getElementById('saleBev').value,
+                "Total Revenue": document.getElementById('calcRev').value.replace(/[^0-9.]/g, ''), "Total Pax": document.getElementById('pax').value,
+                "APC": document.getElementById('calcAPC').value.replace(/[^0-9.]/g, ''), "Avg Bill": document.getElementById('calcAvgBill').value.replace(/[^0-9.]/g, ''),
+                "Staff On Board": document.getElementById('staffOn').value, "Staff Weekly Off": document.getElementById('staffOff').value,
+                "Absent Staff": document.getElementById('staffAbs').value, "Not Available": document.getElementById('staffNA').value,
+                "Today Target": document.getElementById('target').value, "Reviews": document.getElementById('reviews').value,
+                "Complaints": document.getElementById('complaints').value, "Cash Expenses": document.getElementById('expCash').value,
+                "Credit Expenses": document.getElementById('expCredit').value
+            };
+            let history = JSON.parse(localStorage.getItem('hotelEODMemory') || '[]');
+            history.push(record); localStorage.setItem('hotelEODMemory', JSON.stringify(history));
+            showToast("Record Saved Successfully!");
+            document.getElementById('eodForm').reset(); document.getElementById('date').valueAsDate = new Date(); 
+            calculateMetrics(); loadSavedDays(); 
+        });
+
+        function loadSavedDays() {
+            let history = JSON.parse(localStorage.getItem('hotelEODMemory') || '[]');
+            let needsSave = false;
+            history.forEach(r => { if (!r.id) { r.id = Math.random().toString(36).substr(2, 9); needsSave = true; }});
+            if (needsSave) localStorage.setItem('hotelEODMemory', JSON.stringify(history));
+            const listEl = document.getElementById('savedList');
+            if (history.length === 0) { listEl.innerHTML = '<li style="justify-content: center; color: #a0a0aa;">No records saved yet.</li>'; return; }
+            const displayHistory = [...history].sort((a, b) => new Date(b.Date) - new Date(a.Date));
+            listEl.innerHTML = displayHistory.map(record => `<li><div class="record-info"><span class="date">📅 ${record.Date}</span><span class="loc">${record.Location || 'Unknown'}</span></div><button type="button" class="btn-delete" onclick="deleteRecord('${record.id}')">✕ Delete</button></li>`).join('');
+        }
+
+        function deleteRecord(id) {
+            if (confirm("Delete this record permanently?")) {
+                let history = JSON.parse(localStorage.getItem('hotelEODMemory') || '[]');
+                history = history.filter(record => record.id !== id);
+                localStorage.setItem('hotelEODMemory', JSON.stringify(history));
+                loadSavedDays(); showToast("Record Deleted");
+            }
+        }
+
+        function showToast(message) {
+            var toast = document.getElementById("toast"); toast.innerText = message; toast.className = "show";
+            setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        // Generate the raw CSV String
+        function getCSVString() {
+            const history = JSON.parse(localStorage.getItem('hotelEODMemory') || '[]');
+            if (history.length === 0) return null;
+            let headers = Object.keys(history[0]).filter(k => k !== 'id');
+            let csvContent = headers.join(',') + '\n';
+            history.forEach(row => {
+                let values = headers.map(header => {
+                    let val = row[header] === undefined ? "" : String(row[header]);
+                    val = val.replace(/"/g, '""'); return `"${val}"`;
+                });
+                csvContent += values.join(',') + '\n';
+            });
+            return csvContent;
+        }
+
+        function exportToCSV() {
+            const csvContent = getCSVString();
+            if (!csvContent) { alert("No records found to download!"); return; }
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url); link.setAttribute("download", "Hotel_Database_Export.csv");
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
+        // NEW: Push to Google Drive Webhook
+        function backupToDrive() {
+            const webhookUrl = document.getElementById('driveWebhookUrl').value.trim();
+            if (!webhookUrl) { alert("Please enter your Google Drive Webhook Link first."); return; }
+            
+            const csvContent = getCSVString();
+            if (!csvContent) { alert("No records found to backup! Save a day first."); return; }
+
+            const filename = "Hotel_Database_Export_" + new Date().toISOString().split('T')[0] + ".csv";
+            showToast("Uploading to Drive...");
+
+            fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // 'text/plain' bypasses strict CORS errors
+                body: JSON.stringify({ filename: filename, csv: csvContent })
+            })
+            .then(response => {
+                showToast("Backup Complete!");
+            })
+            .catch(error => {
+                showToast("Error during backup.");
+                console.error("Backup Error:", error);
+            });
+        }
+    </script>
 </body>
 </html>
