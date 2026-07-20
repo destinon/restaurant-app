@@ -124,7 +124,7 @@
                 </div>
             </div>
 
-            <!-- Staffing, Feedback & Expenses Condensed for brevity -->
+            <!-- Staffing, Feedback & Expenses -->
             <div class="glass-panel">
                 <h2>Staff Overview</h2>
                 <div class="grid-2">
@@ -156,23 +156,11 @@
                 <ul id="savedList" class="saved-list"></ul>
             </div>
 
-            <!-- NEW: CLOUD SYNC CONFIGURATION -->
-            <div class="glass-panel">
-                <h2>Cloud Sync Configuration</h2>
-                <p style="font-size: 0.85em; color: var(--text-muted); margin-bottom: 15px;">Paste your secure Google Apps Script Webhook URL here to backup directly to your Google Drive.</p>
-                <div class="form-group">
-                    <label>Google Drive Webhook Link</label>
-                    <input type="text" id="driveWebhookUrl" placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec">
-                </div>
-                <div class="button-group" style="margin-top: 15px;">
-                    <button type="button" class="cloud" onclick="backupToDrive()">Backup to Google Drive</button>
-                </div>
-            </div>
-
             <!-- Actions -->
             <div class="button-group">
-                <button type="button" class="export" onclick="exportToCSV()">Download CSV to Device</button>
-                <button type="submit" class="primary">Save End of Day to Memory</button>
+                <button type="button" class="export" onclick="exportToCSV()">Download CSV</button>
+                <button type="button" class="cloud" onclick="backupToDrive()">Backup to Drive</button>
+                <button type="submit" class="primary">Save End of Day</button>
             </div>
         </form>
     </div>
@@ -180,14 +168,13 @@
     <div id="toast">Ready!</div>
 
     <script>
+        // ==========================================
+        // HARDCODE YOUR GOOGLE APPS SCRIPT URL HERE
+        // ==========================================
+        const APP_SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_URL_HERE";
+
         document.getElementById('date').valueAsDate = new Date();
         loadSavedDays(); 
-
-        // Load saved Webhook URL if it exists
-        document.getElementById('driveWebhookUrl').value = localStorage.getItem('hotelWebhookUrl') || '';
-        document.getElementById('driveWebhookUrl').addEventListener('input', function() {
-            localStorage.setItem('hotelWebhookUrl', this.value);
-        });
 
         document.getElementById('billFirst').addEventListener('input', calculateBills);
         document.getElementById('billLast').addEventListener('input', calculateBills);
@@ -269,7 +256,6 @@
             setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
         }
 
-        // Generate the raw CSV String
         function getCSVString() {
             const history = JSON.parse(localStorage.getItem('hotelEODMemory') || '[]');
             if (history.length === 0) return null;
@@ -295,10 +281,11 @@
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
-        // NEW: Push to Google Drive Webhook
         function backupToDrive() {
-            const webhookUrl = document.getElementById('driveWebhookUrl').value.trim();
-            if (!webhookUrl) { alert("Please enter your Google Drive Webhook Link first."); return; }
+            if (APP_SCRIPT_URL === "PASTE_YOUR_APPS_SCRIPT_URL_HERE") { 
+                alert("You need to paste your Google Apps Script URL into the code first."); 
+                return; 
+            }
             
             const csvContent = getCSVString();
             if (!csvContent) { alert("No records found to backup! Save a day first."); return; }
@@ -306,9 +293,9 @@
             const filename = "Hotel_Database_Export_" + new Date().toISOString().split('T')[0] + ".csv";
             showToast("Uploading to Drive...");
 
-            fetch(webhookUrl, {
+            fetch(APP_SCRIPT_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // 'text/plain' bypasses strict CORS errors
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({ filename: filename, csv: csvContent })
             })
             .then(response => {
